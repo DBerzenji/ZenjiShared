@@ -100,12 +100,16 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_tx_budget_date ON transactions(budget_id, date);
 `;
 
-db.exec(schemaSql);
-
-// Migrations for category features
-try { db.exec(`ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'`); } catch (e) { /* column already exists */ }
-try { db.exec(`ALTER TABLE categories ADD COLUMN is_sinking_fund INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* column already exists */ }
-try { db.exec(`ALTER TABLE categories ADD COLUMN balance_cents INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* column already exists */ }
+async function initializeDatabase() {
+  await db.exec(schemaSql);
+  for (const sql of [
+    `ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'`,
+    `ALTER TABLE categories ADD COLUMN is_sinking_fund INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE categories ADD COLUMN balance_cents INTEGER NOT NULL DEFAULT 0`
+  ]) {
+    try { await db.exec(sql); } catch (e) { /* column already exists */ }
+  }
+}
 
 // ---------- Helpers ----------
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no look-alike characters
@@ -142,8 +146,12 @@ app.post('/api/budgets', async (req, res) => {
   } while ((await db.get('SELECT 1 FROM budgets WHERE code=?', [code])));
   const info = await db.run('INSERT INTO budgets (code,name) VALUES (?,?)', [code, name]);
   const ins = 'INSERT INTO categories (budget_id,name,planned_cents,sort,type) VALUES (?,?,0,?,?)';
-  ['Salary', 'Other Income'].forEach((n, i) => { db.run(ins, [info.lastInsertRowid, n, i, 'income']); });
-  ['Rent / Mortgage', 'Groceries', 'Transport', 'Fun'].forEach((n, i) => { db.run(ins, [info.lastInsertRowid, n, i + 10, 'expense']); });
+  for (let i = 0; i < ['Salary', 'Other Income'].length; i++) {
+    await db.run(ins, [info.lastInsertRowid, ['Salary', 'Other Income'][i], i, 'income']);
+  }
+  for (let i = 0; i < ['Rent / Mortgage', 'Groceries', 'Transport', 'Fun'].length; i++) {
+    await db.run(ins, [info.lastInsertRowid, ['Rent / Mortgage', 'Groceries', 'Transport', 'Fun'][i], i + 10, 'expense']);
+  }
   res.json({ code, name });
 });
 
@@ -293,4 +301,11 @@ setInterval(() => {
   }
 }, 30000);
 
-server.listen(PORT, () => console.log(`Budget app running on http://localhost:${PORT}`));
+initializeDatabase()
+  .then(() => {
+    server.listen(PORT, () => console.log(`Budget app running on http://localhost:${PORT}`));
+  })
+  .catch((error) => {
+    console.error('Database initialization failed:', error);
+    process.exit(1);
+  });

@@ -1,0 +1,1508 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#047857">
+  <title>Envelope Budget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Accessible Light Theme (WCAG AA & AAA compliant) */
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --card-hover: #f1f5f9;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --border-subtle: #cbd5e1;
+
+      /* Primary & Emerald (Success / In-Budget) */
+      --primary: #047857;
+      --primary-hover: #065f46;
+      --green: #047857;
+      --green-soft: #ecfdf5;
+      --green-soft-text: #065f46;
+      --green-border: #a7f3d0;
+
+      /* Alert & Red (Expense / Over-Budget) */
+      --red: #b91c1c;
+      --red-hover: #991b1b;
+      --red-soft: #fef2f2;
+      --red-soft-text: #991b1b;
+      --red-border: #fecaca;
+
+      /* Warning & Amber (Near-Budget >= 85%) */
+      --amber: #b45309;
+      --amber-soft: #fffbeb;
+      --amber-soft-text: #92400e;
+      --amber-border: #fde68a;
+
+      /* Interactive & Elevation */
+      --focus: #0d9488;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+      --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+      --r: 14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        /* Accessible Dark Theme */
+        --bg: #0b0f19;
+        --card: #131b2e;
+        --card-hover: #1b263f;
+        --ink: #f8fafc;
+        --muted: #94a3b8;
+        --line: #232f48;
+        --border-subtle: #334155;
+
+        /* Primary & Emerald */
+        --primary: #10b981;
+        --primary-hover: #34d399;
+        --green: #34d399;
+        --green-soft: rgba(6, 78, 59, 0.45);
+        --green-soft-text: #6ee7b7;
+        --green-border: #065f46;
+
+        /* Alert & Red */
+        --red: #f87171;
+        --red-hover: #ef4444;
+        --red-soft: rgba(69, 10, 10, 0.5);
+        --red-soft-text: #fca5a5;
+        --red-border: #991b1b;
+
+        /* Warning & Amber */
+        --amber: #fbbf24;
+        --amber-soft: rgba(69, 26, 3, 0.5);
+        --amber-soft-text: #fcd34d;
+        --amber-border: #92400e;
+
+        /* Interactive & Elevation */
+        --focus: #2dd4bf;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45);
+        --shadow-lg: 0 12px 28px -5px rgba(0, 0, 0, 0.65);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    *:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    html,
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.45 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      background: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* join screen */
+    #join {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+    }
+
+    #join .box {
+      width: 100%;
+      padding: 32px 0;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 20px;
+      font-size: 15px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      margin: 14px 0 6px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      font-size: 16px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px var(--green-soft);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-height: 46px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 15px;
+      margin-top: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      box-shadow: var(--shadow);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.ghost {
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border: 1px solid var(--green-border);
+      box-shadow: none;
+    }
+
+    .btn.ghost:hover {
+      background: var(--green);
+      color: #ffffff;
+      border-color: var(--green);
+    }
+
+    .btn.danger {
+      background: var(--red-soft);
+      color: var(--red-soft-text);
+      border: 1px solid var(--red-border);
+      box-shadow: none;
+    }
+
+    .btn.danger:hover {
+      background: var(--red);
+      color: #ffffff;
+      border-color: var(--red);
+    }
+
+    .or {
+      text-align: center;
+      color: var(--muted);
+      margin: 10px 0;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      padding-top: env(safe-area-inset-top);
+      backdrop-filter: blur(8px);
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 8px;
+    }
+
+    .top .name {
+      font-weight: 700;
+      font-size: 19px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.25s ease;
+    }
+
+    .dot.on {
+      background: var(--green);
+      box-shadow: 0 0 0 3px var(--green-soft);
+    }
+
+    .icon {
+      padding: 8px 14px;
+      border-radius: 10px;
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--line);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .icon:hover {
+      background: var(--card-hover);
+      border-color: var(--border-subtle);
+    }
+
+    .month {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+
+    .month b {
+      min-width: 160px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .month button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 22px;
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .month button:hover {
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border-color: var(--green-border);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--muted);
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .tabs button.active {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    main {
+      padding: 18px 0 110px;
+    }
+
+    /* summary */
+    .sum-card {
+      padding: 18px;
+    }
+
+    .sum {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+
+    .sum div span {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .sum div b {
+      font-size: 18px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .left {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 15px;
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border: 1px solid var(--green-border);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .left.bad {
+      background: var(--red-soft);
+      color: var(--red-soft-text);
+      border: 1px solid var(--red-border);
+    }
+
+    /* badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.2px;
+    }
+
+    .badge-success {
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border: 1px solid var(--green-border);
+    }
+
+    .badge-warn {
+      background: var(--amber-soft);
+      color: var(--amber-soft-text);
+      border: 1px solid var(--amber-border);
+    }
+
+    .badge-danger {
+      background: var(--red-soft);
+      color: var(--red-soft-text);
+      border: 1px solid var(--red-border);
+    }
+
+    .badge-income {
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border: 1px solid var(--green-border);
+    }
+
+    .badge-neutral {
+      background: var(--card-hover);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    /* categories */
+    .cat {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .cat:hover {
+      border-color: var(--border-subtle);
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+
+    .cat:active {
+      transform: translateY(0);
+    }
+
+    .cat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cat-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .cat-title-wrap .n {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--ink);
+    }
+
+    .cat-action-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .cat .rem {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cat .rem.over {
+      color: var(--red);
+    }
+
+    .btn-quick-add {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 34px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: var(--green-soft);
+      color: var(--green-soft-text);
+      border: 1px solid var(--green-border);
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .btn-quick-add:hover {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .cat .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar {
+      height: 8px;
+      background: var(--line);
+      border-radius: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--green);
+      border-radius: 6px;
+      transition: width .25s ease;
+    }
+
+    .bar i.warn {
+      background: var(--amber);
+    }
+
+    .bar i.over {
+      background: var(--red);
+    }
+
+    .bar i.inc-bar {
+      background: var(--green);
+    }
+
+    /* transactions */
+    .tx-card {
+      padding: 6px 12px;
+    }
+
+    .tx {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+      text-align: left;
+      padding: 12px 6px;
+      border-bottom: 1px solid var(--line);
+      border-radius: 8px;
+      transition: background 0.12s ease;
+    }
+
+    .tx:last-child {
+      border-bottom: 0;
+    }
+
+    .tx:hover {
+      background: var(--card-hover);
+    }
+
+    .tx .l {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tx .t {
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tx .m {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .tx .a {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tx .a.inc {
+      color: var(--green);
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 32px 12px;
+      font-size: 15px;
+    }
+
+    /* floating action button */
+    .fab {
+      position: fixed;
+      right: max(20px, calc(50% - 300px));
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 32px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-lg);
+      z-index: 6;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .fab:hover {
+      background: var(--primary-hover);
+      transform: scale(1.05);
+    }
+
+    .fab:active {
+      transform: scale(0.96);
+    }
+
+    /* overlay and sheets */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      z-index: 20;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .sheet {
+      background: var(--card);
+      width: 100%;
+      max-width: 520px;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(24px);
+      }
+
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    @media(min-width:600px) {
+      .overlay {
+        align-items: center;
+      }
+
+      .sheet {
+        border-radius: 20px;
+        margin: 20px;
+      }
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .sheet-head h2 {
+      margin: 4px 0 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .sheet-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--card-hover);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .sheet-close:hover {
+      background: var(--line);
+      color: var(--ink);
+    }
+
+    .seg {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 3px;
+      margin-top: 8px;
+    }
+
+    .seg button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--muted);
+      transition: all 0.15s ease;
+    }
+
+    .seg button.on {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .amount {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+      padding: 14px;
+    }
+
+    .err {
+      color: var(--red);
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    .code {
+      font-size: 32px;
+      letter-spacing: 5px;
+      font-weight: 700;
+      text-align: center;
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin: 12px 0;
+      user-select: all;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 100px;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 30;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .section-head::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .expect {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    /* Category detailed sheet styling */
+    .cat-summary-box {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+
+    .cat-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .cat-stat-lbl {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cat-stat-val {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+      margin-top: 3px;
+    }
+
+    .cat-stat-val.over {
+      color: var(--red);
+    }
+
+    .cat-stat-sub {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      margin-top: 3px;
+    }
+
+    .cat-tx-section {
+      margin-top: 18px;
+    }
+
+    .cat-tx-list {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 4px 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .cat-tx-list .tx {
+      background: transparent;
+      padding: 10px 6px;
+    }
+
+    .cat-tx-list .tx:hover {
+      background: var(--card);
+    }
+
+    .cat-settings-wrap {
+      margin-top: 20px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .cat-settings-summary {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 6px 0;
+      transition: color 0.15s ease;
+    }
+
+    .cat-settings-summary:hover {
+      color: var(--ink);
+    }
+
+    .cat-settings-body {
+      padding-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Start screen -->
+  <section id="join" class="hidden">
+    <div class="wrap">
+      <div class="box">
+        <h1>Envelope Budget</h1>
+        <p class="sub">Give every dollar a job. Share one budget with your household.</p>
+        <div class="card">
+          <label for="myName">Your name</label>
+          <input id="myName" placeholder="e.g. Sam" autocomplete="given-name">
+          <label for="newName">Start a new budget</label>
+          <input id="newName" placeholder="Budget name (e.g. Our Home)">
+          <button class="btn" id="createBtn">Create budget</button>
+          <div class="or">or</div>
+          <label for="joinCode">Join with a code</label>
+          <input id="joinCode" placeholder="8-letter code" autocapitalize="characters" maxlength="8">
+          <button class="btn ghost" id="joinBtn">Join budget</button>
+          <div class="err" id="joinErr"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="app" class="hidden">
+    <header>
+      <div class="wrap">
+        <div class="top">
+          <div class="name"><span class="dot" id="dot" title="Live sync"></span><span id="bName"></span></div>
+          <button class="icon" id="shareBtn" aria-label="Share budget">Share</button>
+        </div>
+        <div class="month">
+          <button id="prevM" aria-label="Previous month">‹</button>
+          <b id="monthLabel"></b>
+          <button id="nextM" aria-label="Next month">›</button>
+        </div>
+        <div class="tabs">
+          <button data-tab="budget" class="active">Budget</button>
+          <button data-tab="tx">Transactions</button>
+        </div>
+      </div>
+    </header>
+    <main class="wrap" id="main"></main>
+    <button class="fab" id="fab" aria-label="Add transaction">+</button>
+  </section>
+
+  <div id="modal"></div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const money = (c) => (c < 0 ? '-' : '') + '$' + (Math.abs(c) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const toCents = (s) => { const n = parseFloat(String(s).replace(/[^0-9.]/g, '')); return Number.isFinite(n) ? Math.round(n * 100) : NaN; };
+    const fromCents = (c) => (c / 100).toFixed(2);
+    const pad = (n) => String(n).padStart(2, '0');
+    const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+    const curMonthStr = () => today().slice(0, 7);
+
+    const store = {
+      get: () => { try { return JSON.parse(localStorage.getItem('envelope') || 'null'); } catch { return null; } },
+      set: (v) => { try { localStorage.setItem('envelope', JSON.stringify(v)); } catch { } },
+      clear: () => { try { localStorage.removeItem('envelope'); } catch { } }
+    };
+    const clientId = Math.random().toString(36).slice(2);
+    let me = store.get();            // { code, user }
+    let month = curMonthStr();
+    let tab = 'budget';
+    let data = null;
+    let lastCat = null;
+
+    async function api(method, path, body) {
+      const res = await fetch(`/api${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-client': clientId },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Something went wrong.');
+      return json;
+    }
+
+    function toast(msg) {
+      const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+      document.body.appendChild(t); setTimeout(() => t.remove(), 2200);
+    }
+
+    /* ---------- Join / create ---------- */
+    function showJoin() {
+      $('#app').classList.add('hidden'); $('#join').classList.remove('hidden');
+      $('#myName').value = (me && me.user) || '';
+    }
+    async function enter(code) {
+      const user = $('#myName').value.trim() || 'Me';
+      me = { code, user }; store.set(me);
+      $('#join').classList.add('hidden'); $('#app').classList.remove('hidden');
+      await load(); connect();
+    }
+    $('#createBtn').onclick = async () => {
+      $('#joinErr').textContent = '';
+      try {
+        const r = await api('POST', '/budgets', { name: $('#newName').value });
+        await enter(r.code);
+        openShare(true);
+      } catch (e) { $('#joinErr').textContent = e.message; }
+    };
+    $('#joinBtn').onclick = async () => {
+      $('#joinErr').textContent = '';
+      const code = $('#joinCode').value.trim().toUpperCase();
+      if (!code) return ($('#joinErr').textContent = 'Enter the code from your household member.');
+      try { await api('GET', `/b/${code}/state?month=${month}`); await enter(code); }
+      catch (e) { $('#joinErr').textContent = e.message; }
+    };
+
+    /* ---------- Data + live sync ---------- */
+    async function load() {
+      if (!me) return;
+      try {
+        data = await api('GET', `/b/${me.code}/state?month=${month}`);
+        $('#bName').textContent = data.name;
+        render();
+      } catch (e) {
+        if (/not found/i.test(e.message)) { store.clear(); me = null; showJoin(); }
+      }
+    }
+
+    let ws, retry = 0, closing = false;
+    function connect() {
+      if (!me) return;
+      closing = false;
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws?code=${me.code}`);
+      ws.onopen = () => { retry = 0; $('#dot').classList.add('on'); load(); };
+      ws.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === 'changed') load(); } catch { } };
+      ws.onclose = () => {
+        $('#dot').classList.remove('on');
+        if (closing || !me) return;
+        setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
+      };
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && me) load(); });
+
+    /* ---------- Render ---------- */
+    function monthLabel() {
+      const [y, m] = month.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    }
+    function shiftMonth(delta) {
+      let [y, m] = month.split('-').map(Number);
+      m += delta; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+      month = `${y}-${pad(m)}`; load();
+    }
+    $('#prevM').onclick = () => shiftMonth(-1);
+    $('#nextM').onclick = () => shiftMonth(1);
+    document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+      tab = b.dataset.tab;
+      document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
+      render();
+    });
+
+    function render() {
+      if (!data) return;
+      $('#monthLabel').textContent = monthLabel();
+      $('#main').innerHTML = tab === 'budget' ? renderBudget() : renderTx();
+    }
+
+    function renderBudget() {
+      const iCats = data.incomeCategories || [];
+      const plannedExpense = data.categories.reduce((s, c) => s + c.planned, 0);
+      const plannedIncome = iCats.reduce((s, c) => s + c.planned, 0);
+      const spent = data.categories.reduce((s, c) => s + c.spent, 0) + data.uncategorized;
+      const incomeBase = plannedIncome > 0 ? plannedIncome : data.income;
+      const toAssign = incomeBase - plannedExpense;
+
+      let h = `<div class="card sum-card"><div class="sum">
+    <div><span>Income</span><b>${money(data.income)}</b>${plannedIncome > 0 ? `<span class="expect">of ${money(plannedIncome)} expected</span>` : ''}</div>
+    <div><span>Budgeted</span><b>${money(plannedExpense)}</b></div>
+    <div><span>Spent</span><b>${money(spent)}</b></div></div>
+    <div class="left ${toAssign < 0 ? 'bad' : ''}">${toAssign < 0 ? `⚠️ Over-planned by ${money(-toAssign)}` : `✓ ${money(toAssign)} left to plan`}</div></div>`;
+
+      // Income sources
+      h += `<div class="section-head"><span>Expected Income</span></div>`;
+      if (!iCats.length) h += `<div class="empty" style="padding:16px 8px">No income sources yet — add one to plan your expected income.</div>`;
+      for (const c of iCats) {
+        const pct = c.planned > 0 ? Math.min(100, (c.actual / c.planned) * 100) : (c.actual > 0 ? 100 : 0);
+        const fulfilled = c.planned > 0 && c.actual >= c.planned;
+        h += `<div class="cat" data-icat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(c.actual)} received">
+      <div class="cat-header">
+        <div class="cat-title-wrap">
+          <span class="n">${esc(c.name)}</span>
+          <span class="badge badge-income">${fulfilled ? '✓ Received' : `${Math.round(pct)}% received`}</span>
+        </div>
+        <div class="cat-action-wrap">
+          <span class="rem">${money(c.actual)}</span>
+          <button class="btn-quick-add" data-quick-icat="${c.id}" title="Add income to ${esc(c.name)}" aria-label="Add income to ${esc(c.name)}">+ Add</button>
+        </div>
+      </div>
+      <div class="meta">${money(c.actual)} received of ${money(c.planned)} expected</div>
+      <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i class="inc-bar" style="width:${pct}%"></i></div></div>`;
+      }
+      h += `<button class="btn ghost" id="addInc" style="margin-bottom:8px">+ Add income source</button>`;
+
+      // Expense envelopes
+      h += `<div class="section-head"><span>Expense Envelopes</span></div>`;
+      if (!data.categories.length) h += `<div class="empty">No categories yet. Add your first one below.</div>`;
+      for (const c of data.categories) {
+        const left = c.planned - c.spent;
+        const pct = c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0);
+        const cls = left < 0 ? 'over' : pct >= 85 ? 'warn' : '';
+        const badgeCls = left < 0 ? 'badge-danger' : (pct >= 85 ? 'badge-warn' : 'badge-success');
+        const badgeText = left < 0 ? 'Over budget' : (pct >= 85 ? `${Math.round(pct)}% used` : 'On track');
+
+        h += `<div class="cat" data-cat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(left)} ${left < 0 ? 'over' : 'left'}">
+      <div class="cat-header">
+        <div class="cat-title-wrap">
+          <span class="n">${esc(c.name)}</span>
+          <span class="badge ${badgeCls}">${badgeText}</span>
+        </div>
+        <div class="cat-action-wrap">
+          <span class="rem ${left < 0 ? 'over' : ''}">${left < 0 ? `-${money(-left)}` : money(left)} ${left < 0 ? 'over' : 'left'}</span>
+          <button class="btn-quick-add" data-quick-cat="${c.id}" title="Add expense to ${esc(c.name)}" aria-label="Add expense to ${esc(c.name)}">+ Add</button>
+        </div>
+      </div>
+      <div class="meta">${money(c.spent)} spent of ${money(c.planned)} planned</div>
+      <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i class="${cls}" style="width:${pct}%"></i></div></div>`;
+      }
+      if (data.uncategorized > 0) h += `<div class="meta" style="padding:4px 4px 10px;color:var(--muted)">Plus ${money(data.uncategorized)} spent with no category.</div>`;
+      h += `<button class="btn ghost" id="addCat">+ Add category</button>`;
+      return h;
+    }
+
+    function renderTx() {
+      if (!data.transactions.length) return `<div class="empty">No transactions this month.<br>Tap + to add one.</div>`;
+      return `<div class="card tx-card">` + data.transactions.map((t) => {
+        const d = new Date(t.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const title = t.note || t.categoryName || (t.type === 'income' ? 'Income' : 'Uncategorized');
+        const meta = [d, t.type === 'expense' ? (t.categoryName || 'No category') : (t.categoryName || 'Income'), t.who].filter(Boolean).join(' · ');
+        return `<button class="tx" data-tx="${t.id}"><div class="l"><div class="t">${esc(title)}</div><div class="m">${esc(meta)}</div></div>
+      <div class="a ${t.type === 'income' ? 'inc' : ''}">${t.type === 'income' ? '+' : '-'}${money(t.amount)}</div></button>`;
+      }).join('') + `</div>`;
+    }
+
+    $('#main').addEventListener('click', (e) => {
+      // 1. Quick add direct button on category card
+      const quickCat = e.target.closest('[data-quick-cat]');
+      if (quickCat) {
+        e.stopPropagation();
+        const cid = Number(quickCat.dataset.quickCat);
+        openTx(null, { categoryId: cid, type: 'expense' });
+        return;
+      }
+      const quickIcat = e.target.closest('[data-quick-icat]');
+      if (quickIcat) {
+        e.stopPropagation();
+        const cid = Number(quickIcat.dataset.quickIcat);
+        openTx(null, { categoryId: cid, type: 'income' });
+        return;
+      }
+
+      // 2. Select category to inspect, add transaction, or edit
+      const cat = e.target.closest('[data-cat]');
+      const icat = e.target.closest('[data-icat]');
+      const tx = e.target.closest('[data-tx]');
+
+      if (cat) openCategory(data.categories.find((c) => c.id == cat.dataset.cat));
+      else if (icat) openCategory((data.incomeCategories || []).find((c) => c.id == icat.dataset.icat));
+      else if (tx) openTx(data.transactions.find((t) => t.id == tx.dataset.tx));
+      else if (e.target.id === 'addCat') openCategory(null, 'expense');
+      else if (e.target.id === 'addInc') openCategory(null, 'income');
+    });
+
+    $('#main').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const cat = e.target.closest('[data-cat]'), icat = e.target.closest('[data-icat]');
+        if (cat) { e.preventDefault(); openCategory(data.categories.find((c) => c.id == cat.dataset.cat)); }
+        else if (icat) { e.preventDefault(); openCategory((data.incomeCategories || []).find((c) => c.id == icat.dataset.icat)); }
+      }
+    });
+
+    $('#fab').onclick = () => openTx(null);
+    $('#shareBtn').onclick = () => openShare(false);
+
+    /* ---------- Sheets ---------- */
+    function sheet(html) {
+      $('#modal').innerHTML = `<div class="overlay"><div class="sheet">${html}</div></div>`;
+      const ov = $('#modal .overlay');
+      ov.addEventListener('mousedown', (e) => { if (e.target === ov) closeSheet(); });
+      return $('#modal .sheet');
+    }
+    function closeSheet() { $('#modal').innerHTML = ''; }
+
+    function openTx(t, defs = {}) {
+      const isNew = !t;
+      let type = t ? t.type : (defs.type || 'expense');
+      const expenseCatOpts = data.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      const incomeCatOpts = (data.incomeCategories || []).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      const defDate = isNew ? (month === curMonthStr() ? today() : `${month}-01`) : t.date;
+      const initialCatId = t ? t.categoryId : (defs.categoryId !== undefined ? defs.categoryId : (type === 'expense' ? lastCat : null));
+      const targetCat = initialCatId ? [...data.categories, ...(data.incomeCategories || [])].find((c) => c.id == initialCatId) : null;
+      const title = isNew ? (targetCat ? `Add transaction · ${targetCat.name}` : 'Add transaction') : 'Edit transaction';
+
+      const s = sheet(`<div class="sheet-head">
+      <div>
+        <h2>${esc(title)}</h2>
+        ${targetCat ? `<div class="sub" style="margin:2px 0 0;font-size:13px">Directly to <b>${esc(targetCat.name)}</b></div>` : ''}
+      </div>
+      <button class="sheet-close" id="txClose" aria-label="Close dialog">✕</button>
+    </div>
+    <div class="seg"><button data-type="expense">Expense</button><button data-type="income">Income</button></div>
+    <label for="fAmt">Amount</label><input id="fAmt" class="amount" inputmode="decimal" placeholder="0.00" value="${t ? fromCents(t.amount) : ''}">
+    <div id="catWrap"><label id="catLabel" for="fCat">Category</label><select id="fCat"><option value="">No category</option>${expenseCatOpts}</select></div>
+    <label for="fNote">Note (optional)</label><input id="fNote" maxlength="120" placeholder="e.g. Costco" value="${esc(t ? t.note : '')}">
+    <label for="fDate">Date</label><input id="fDate" type="date" value="${defDate}">
+    <div class="err" id="fErr"></div>
+    <button class="btn" id="fSave">${isNew ? 'Save transaction' : 'Save changes'}</button>
+    ${isNew ? '' : '<button class="btn danger" id="fDel">Delete transaction</button>'}`);
+
+      const sel = $('#fCat');
+      const setType = (v) => {
+        type = v;
+        s.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.type === v));
+        const opts = v === 'income' ? incomeCatOpts : expenseCatOpts;
+        sel.innerHTML = `<option value="">${v === 'income' ? 'No source' : 'No category'}</option>${opts}`;
+        $('#catLabel').textContent = v === 'income' ? 'Income source' : 'Category';
+        if (initialCatId && ((v === 'income' && (data.incomeCategories || []).some(c => c.id == initialCatId)) || (v === 'expense' && data.categories.some(c => c.id == initialCatId)))) {
+          sel.value = initialCatId;
+        }
+      };
+
+      s.querySelectorAll('.seg button').forEach((b) => b.onclick = () => setType(b.dataset.type));
+      setType(type);
+      if (initialCatId) {
+        sel.value = initialCatId;
+      }
+      $('#txClose').onclick = closeSheet;
+      setTimeout(() => $('#fAmt').focus(), 50);
+
+      const save = async () => {
+        const amount = toCents($('#fAmt').value);
+        if (!(amount > 0)) return ($('#fErr').textContent = 'Enter an amount above zero.');
+        const categoryId = sel.value ? Number(sel.value) : null;
+        const body = { type, amount, categoryId, note: $('#fNote').value, date: $('#fDate').value, who: me.user };
+        try {
+          if (isNew) await api('POST', `/b/${me.code}/transactions`, body);
+          else await api('PUT', `/b/${me.code}/transactions/${t.id}`, body);
+          if (categoryId && type === 'expense') lastCat = categoryId;
+          closeSheet(); await load();
+        } catch (e) { $('#fErr').textContent = e.message; }
+      };
+
+      $('#fSave').onclick = save;
+      s.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') closeSheet(); });
+      if (!isNew) $('#fDel').onclick = async () => {
+        if (!confirm('Delete this transaction?')) return;
+        await api('DELETE', `/b/${me.code}/transactions/${t.id}`); closeSheet(); load();
+      };
+    }
+
+    function openCategory(c, catType) {
+      const isNew = !c;
+      const type = c ? (c.type || 'expense') : (catType || 'expense');
+      const isIncome = type === 'income';
+
+      if (isNew) {
+        const title = isIncome ? 'Add income source' : 'Add category';
+        const s = sheet(`<div class="sheet-head">
+        <h2>${title}</h2>
+        <button class="sheet-close" id="cClose" aria-label="Close dialog">✕</button>
+      </div>
+      <label for="cName">Name</label><input id="cName" maxlength="60" placeholder="${isIncome ? 'e.g. Salary' : 'e.g. Groceries'}" value="">
+      <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="">
+      <div class="err" id="cErr"></div>
+      <button class="btn" id="cSave">${title}</button>`);
+
+        $('#cClose').onclick = closeSheet;
+        setTimeout(() => $('#cName').focus(), 50);
+
+        const save = async () => {
+          const name = $('#cName').value.trim();
+          const raw = $('#cPlan').value.trim();
+          const planned = raw === '' ? 0 : toCents(raw);
+          if (!name) return ($('#cErr').textContent = 'Give it a name.');
+          if (!Number.isFinite(planned) || planned < 0) return ($('#cErr').textContent = 'Enter a valid amount.');
+          try {
+            await api('POST', `/b/${me.code}/categories`, { name, planned, type });
+            closeSheet(); await load();
+          } catch (e) { $('#cErr').textContent = e.message; }
+        };
+
+        $('#cSave').onclick = save;
+        s.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') closeSheet(); });
+        return;
+      }
+
+      // Existing category selected
+      const left = isIncome ? 0 : (c.planned - c.spent);
+      const pct = isIncome
+        ? (c.planned > 0 ? Math.min(100, (c.actual / c.planned) * 100) : (c.actual > 0 ? 100 : 0))
+        : (c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0));
+      const cls = !isIncome && left < 0 ? 'over' : pct >= 85 ? 'warn' : '';
+      const catTxs = (data.transactions || []).filter((t) => t.categoryId === c.id);
+
+      const s = sheet(`<div class="sheet-head">
+      <div>
+        <span class="badge ${isIncome ? 'badge-income' : 'badge-neutral'}">${isIncome ? 'Income Source' : 'Expense Envelope'}</span>
+        <h2>${esc(c.name)}</h2>
+      </div>
+      <button class="sheet-close" id="cClose" aria-label="Close dialog">✕</button>
+    </div>
+
+    <!-- Envelope Balance & Progress -->
+    <div class="cat-summary-box">
+      <div class="cat-stat-row">
+        <div>
+          <span class="cat-stat-lbl">${isIncome ? 'Total Received' : (left < 0 ? 'Over Budget' : 'Remaining')}</span>
+          <div class="cat-stat-val ${!isIncome && left < 0 ? 'over' : ''}">${isIncome ? money(c.actual) : (left < 0 ? `-${money(-left)}` : money(left))}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="cat-stat-lbl">${isIncome ? 'Expected Target' : 'Planned Budget'}</span>
+          <div class="cat-stat-sub">${money(c.planned)}</div>
+        </div>
+      </div>
+      <div class="bar" style="margin-top:12px">
+        <i class="${isIncome ? 'inc-bar' : cls}" style="width:${pct}%"></i>
+      </div>
+      <div class="meta" style="margin-top:8px">${isIncome ? `${money(c.actual)} received of ${money(c.planned)} expected (${Math.round(pct)}%)` : `${money(c.spent)} spent of ${money(c.planned)} planned (${Math.round(pct)}%)`}</div>
+    </div>
+
+    <!-- PRIMARY ACTION: Add transaction directly onto this category -->
+    <button class="btn" id="cAddTx" style="margin-top:14px">
+      + Add ${isIncome ? 'income' : 'transaction'} to ${esc(c.name)}
+    </button>
+
+    <!-- Activity in this category this month -->
+    <div class="cat-tx-section">
+      <div class="section-head" style="margin:20px 0 10px"><span>Activity this month (${catTxs.length})</span></div>
+      ${catTxs.length ? `
+        <div class="cat-tx-list">
+          ${catTxs.map(t => {
+        const d = new Date(t.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const meta = [d, t.who].filter(Boolean).join(' · ');
+        return `<button class="tx" data-tx="${t.id}">
+              <div class="l">
+                <div class="t">${esc(t.note || (t.type === 'income' ? 'Income' : 'Expense'))}</div>
+                <div class="m">${esc(meta)}</div>
+              </div>
+              <div class="a ${t.type === 'income' ? 'inc' : ''}">${t.type === 'income' ? '+' : '-'}${money(t.amount)}</div>
+            </button>`;
+      }).join('')}
+        </div>
+      ` : `<div class="empty" style="padding:16px 8px;font-size:14px">No transactions logged for this ${isIncome ? 'source' : 'envelope'} yet this month.</div>`}
+    </div>
+
+    <!-- Envelope Settings -->
+    <details class="cat-settings-wrap">
+      <summary class="cat-settings-summary">⚙️ Envelope settings & monthly target</summary>
+      <div class="cat-settings-body">
+        <label for="cName">Name</label><input id="cName" maxlength="60" value="${esc(c.name)}">
+        <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="${c ? fromCents(c.planned) : ''}">
+        <div class="err" id="cErr"></div>
+        <button class="btn ghost" id="cSave">Save envelope changes</button>
+        <button class="btn danger" id="cDel" style="margin-top:8px">Delete ${isIncome ? 'income source' : 'category'}</button>
+      </div>
+    </details>`);
+
+      $('#cClose').onclick = closeSheet;
+
+      // Handle "+ Add transaction directly onto this category"
+      $('#cAddTx').onclick = () => {
+        closeSheet();
+        openTx(null, { categoryId: c.id, type });
+      };
+
+      // Click transaction in category list to edit
+      s.querySelectorAll('.cat-tx-list [data-tx]').forEach((btn) => {
+        btn.onclick = () => {
+          const txId = Number(btn.dataset.tx);
+          const t = (data.transactions || []).find((x) => x.id === txId);
+          if (t) {
+            closeSheet();
+            openTx(t);
+          }
+        };
+      });
+
+      const save = async () => {
+        const name = $('#cName').value.trim();
+        const raw = $('#cPlan').value.trim();
+        const planned = raw === '' ? 0 : toCents(raw);
+        if (!name) return ($('#cErr').textContent = 'Give it a name.');
+        if (!Number.isFinite(planned) || planned < 0) return ($('#cErr').textContent = 'Enter a valid amount.');
+        try {
+          await api('PUT', `/b/${me.code}/categories/${c.id}`, { name, planned });
+          closeSheet(); await load();
+        } catch (e) { $('#cErr').textContent = e.message; }
+      };
+
+      $('#cSave').onclick = save;
+      s.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+      $('#cDel').onclick = async () => {
+        if (!confirm(`Delete "${c.name}"? Its transactions are kept but become uncategorized.`)) return;
+        await api('DELETE', `/b/${me.code}/categories/${c.id}`); closeSheet(); load();
+      };
+    }
+
+    function openShare(fresh) {
+      const s = sheet(`<div class="sheet-head">
+      <h2>${fresh ? 'Budget created' : 'Share this budget'}</h2>
+      <button class="sheet-close" id="shareClose" aria-label="Close dialog">✕</button>
+    </div>
+    <p class="sub">Anyone with this code can view and edit the budget. Share it only with your household.</p>
+    <div class="code">${esc(me.code)}</div>
+    <button class="btn" id="copyCode">Copy code</button>
+    <button class="btn ghost" id="copyLink">Copy invite link</button>
+    <button class="btn danger" id="leave" style="margin-top:16px">Leave this budget on this device</button>`);
+
+      $('#shareClose').onclick = closeSheet;
+      $('#copyCode').onclick = () => copy(me.code);
+      $('#copyLink').onclick = () => copy(`${location.origin}/#${me.code}`);
+      $('#leave').onclick = () => {
+        if (!confirm('Leave this budget on this device? You can rejoin with the code.')) return;
+        closing = true; if (ws) ws.close(); store.clear(); me = null; data = null; closeSheet(); showJoin();
+      };
+    }
+
+    function copy(text) {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Copied'), () => prompt('Copy this:', text));
+    }
+
+    /* ---------- Start ---------- */
+    (function init() {
+      const hash = location.hash.replace('#', '').toUpperCase();
+      if (hash && (!me || me.code !== hash)) {
+        showJoin(); $('#joinCode').value = hash.slice(0, 8);
+        return;
+      }
+      if (me) { $('#join').classList.add('hidden'); $('#app').classList.remove('hidden'); load(); connect(); }
+      else showJoin();
+    })();
+  </script>
+</body>
+
+</html>

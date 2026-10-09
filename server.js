@@ -102,9 +102,11 @@ b.get('/state', (req, res) => {
   const id = req.budget.id;
   const categories = db.prepare(`
     SELECT c.id, c.name, c.planned_cents AS planned, c.type, c.is_sinking_fund AS isSinkingFund, c.balance_cents AS balance,
-      COALESCE(SUM(CASE WHEN t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS spent
+      COALESCE(SUM(CASE WHEN t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS spent,
+      COALESCE(SUM(CASE WHEN t.category_id=c.id AND t.type='income' AND substr(t.date,1,7)=? THEN t.amount_cents END),0)
+      - COALESCE(SUM(CASE WHEN t.category_id=c.id AND t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS monthSaved
     FROM categories c LEFT JOIN transactions t ON t.category_id=c.id
-    WHERE c.budget_id=? AND c.type='expense' GROUP BY c.id ORDER BY c.sort, c.id`).all(month, id);
+    WHERE c.budget_id=? AND c.type='expense' GROUP BY c.id ORDER BY c.sort, c.id`).all(month, month, month, id);
   const incomeCategories = db.prepare(`
     SELECT c.id, c.name, c.planned_cents AS planned, c.type,
       COALESCE(SUM(CASE WHEN t.type='income' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS actual

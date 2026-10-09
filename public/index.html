@@ -471,8 +471,8 @@
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: var(--r);
-      padding: 14px 16px;
-      margin-bottom: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
       box-shadow: var(--shadow-sm);
       transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
       cursor: pointer;
@@ -493,13 +493,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .cat-title-wrap {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex: 1;
       min-width: 0;
       flex-wrap: wrap;
@@ -507,7 +507,7 @@
 
     .cat-title-wrap .n {
       font-weight: 600;
-      font-size: 16px;
+      font-size: 15px;
       color: var(--ink);
     }
 
@@ -520,7 +520,7 @@
 
     .cat .rem {
       font-weight: 700;
-      font-size: 15px;
+      font-size: 14px;
       color: var(--green);
       font-variant-numeric: tabular-nums;
     }
@@ -534,14 +534,14 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      min-height: 34px;
-      padding: 5px 12px;
+      min-height: 30px;
+      padding: 4px 10px;
       border-radius: 8px;
       background: var(--green-soft);
       color: var(--green-soft-text);
       border: 1px solid var(--green-border);
       font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
       white-space: nowrap;
       transition: all 0.15s ease;
     }
@@ -555,16 +555,16 @@
 
     .cat .meta {
       color: var(--muted);
-      font-size: 13px;
-      margin-top: 4px;
+      font-size: 12px;
+      margin-top: 3px;
       font-variant-numeric: tabular-nums;
     }
 
     .bar {
-      height: 8px;
+      height: 7px;
       background: var(--line);
       border-radius: 6px;
-      margin-top: 10px;
+      margin-top: 8px;
       overflow: hidden;
       position: relative;
     }
@@ -789,6 +789,44 @@
       font-size: 14px;
       color: var(--muted);
       transition: all 0.15s ease;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      min-width: 18px;
+      margin: 0;
+      accent-color: var(--primary);
+    }
+
+    .check-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .check-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .check-subtitle {
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .seg button.on {
@@ -1173,16 +1211,17 @@
         const left = c.planned - c.spent;
         const pct = c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0);
         const balance = c.balance || 0;
-        const displayVal = isSinking ? balance : left;
-        const displayText = isSinking ? (balance >= c.planned ? 'Funded' : `${Math.min(100, Math.round((balance / Math.max(c.planned, 1)) * 100))}% of goal`) : (left < 0 ? 'Over budget' : (pct >= 85 ? `${Math.round(pct)}% used` : 'On track'));
-        const displayCls = isSinking ? (balance >= c.planned ? 'badge-success' : 'badge-neutral') : (left < 0 ? 'badge-danger' : (pct >= 85 ? 'badge-warn' : 'badge-success'));
+        const monthSaved = isSinking ? (c.monthSaved || 0) : 0;
+        const targetPct = isSinking ? (c.planned > 0 ? Math.min(100, (monthSaved / c.planned) * 100) : (monthSaved > 0 ? 100 : 0)) : pct;
+        const displayText = isSinking ? (monthSaved >= c.planned ? 'Target hit' : `${Math.round(targetPct)}% of target`) : (left < 0 ? 'Over budget' : (pct >= 85 ? `${Math.round(pct)}% used` : 'On track'));
+        const displayCls = isSinking ? (monthSaved >= c.planned ? 'badge-success' : 'badge-neutral') : (left < 0 ? 'badge-danger' : (pct >= 85 ? 'badge-warn' : 'badge-success'));
         const remClass = isSinking ? '' : (left < 0 ? 'over' : '');
         const label = isSinking ? `${money(balance)} balance` : `${left < 0 ? `-${money(-left)}` : money(left)} ${left < 0 ? 'over' : 'left'}`;
-        const metaText = isSinking ? `${money(balance)} saved of ${money(c.planned)} target` : `${money(c.spent)} spent of ${money(c.planned)} planned`;
-        const barWidth = isSinking ? Math.min(100, (balance / Math.max(c.planned, 1)) * 100) : pct;
-        const barClass = isSinking ? (balance >= c.planned ? 'inc-bar' : 'badge-neutral') : (left < 0 ? 'over' : (pct >= 85 ? 'warn' : ''));
+        const metaText = isSinking ? `${money(monthSaved)} saved this month of ${money(c.planned)} target` : `${money(c.spent)} spent of ${money(c.planned)} planned`;
+        const barWidth = isSinking ? targetPct : pct;
+        const barClass = isSinking ? (monthSaved >= c.planned ? 'inc-bar' : 'warn') : (left < 0 ? 'over' : (pct >= 85 ? 'warn' : ''));
 
-        h += `<div class="cat" data-cat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(displayVal)} ${isSinking ? 'saved' : (left < 0 ? 'over' : 'left')}">
+        h += `<div class="cat" data-cat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(balance)} balance${isSinking ? '' : (left < 0 ? ' over' : ' left')}">
       <div class="cat-header">
         <div class="cat-title-wrap">
           <span class="n">${esc(c.name)}</span>
@@ -1190,7 +1229,7 @@
         </div>
         <div class="cat-action-wrap">
           <span class="rem ${remClass}">${label}</span>
-          <button class="btn-quick-add" data-quick-cat="${c.id}" title="Add expense to ${esc(c.name)}" aria-label="Add expense to ${esc(c.name)}">+ Add</button>
+          <button class="btn-quick-add" data-quick-cat="${c.id}" title="${isSinking ? 'Contribute to' : 'Add expense to'} ${esc(c.name)}" aria-label="${isSinking ? 'Contribute to' : 'Add expense to'} ${esc(c.name)}">${isSinking ? '+ Contribute' : '+ Add'}</button>
         </div>
       </div>
       <div class="meta">${metaText}</div>
@@ -1218,7 +1257,8 @@
       if (quickCat) {
         e.stopPropagation();
         const cid = Number(quickCat.dataset.quickCat);
-        openTx(null, { categoryId: cid, type: 'expense' });
+        const category = (data.categories || []).find((c) => c.id === cid);
+        openTx(null, { categoryId: cid, type: category && category.isSinkingFund ? 'income' : 'expense' });
         return;
       }
       const quickIcat = e.target.closest('[data-quick-icat]');
@@ -1265,7 +1305,7 @@
       const isNew = !t;
       let type = t ? t.type : (defs.type || 'expense');
       const expenseCatOpts = data.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
-      const incomeCatOpts = (data.incomeCategories || []).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      const incomeCatOpts = [...(data.incomeCategories || []), ...(data.categories || []).filter((c) => c.isSinkingFund)].map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
       const defDate = isNew ? (month === curMonthStr() ? today() : `${month}-01`) : t.date;
       const initialCatId = t ? t.categoryId : (defs.categoryId !== undefined ? defs.categoryId : (type === 'expense' ? lastCat : null));
       const targetCat = initialCatId ? [...data.categories, ...(data.incomeCategories || [])].find((c) => c.id == initialCatId) : null;
@@ -1293,8 +1333,8 @@
         s.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.type === v));
         const opts = v === 'income' ? incomeCatOpts : expenseCatOpts;
         sel.innerHTML = `<option value="">${v === 'income' ? 'No source' : 'No category'}</option>${opts}`;
-        $('#catLabel').textContent = v === 'income' ? 'Income source' : 'Category';
-        if (initialCatId && ((v === 'income' && (data.incomeCategories || []).some(c => c.id == initialCatId)) || (v === 'expense' && data.categories.some(c => c.id == initialCatId)))) {
+        $('#catLabel').textContent = v === 'income' ? 'Income source or sinking fund' : 'Category';
+        if (initialCatId && ((v === 'income' && [...(data.incomeCategories || []), ...(data.categories || []).filter((c) => c.isSinkingFund)].some(c => c.id == initialCatId)) || (v === 'expense' && data.categories.some(c => c.id == initialCatId)))) {
           sel.value = initialCatId;
         }
       };
@@ -1341,7 +1381,7 @@
       </div>
       <label for="cName">Name</label><input id="cName" maxlength="60" placeholder="${isIncome ? 'e.g. Salary' : 'e.g. Groceries'}" value="">
       <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="">
-      ${isIncome ? '' : `<label class="check" for="cSinking"><input id="cSinking" type="checkbox"> Sinking fund (carry balance between months)</label><div id="cBalanceWrap" style="display:none"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="0.00"></div>`}
+      ${isIncome ? '' : `<label class="check-row" for="cSinking"><input id="cSinking" type="checkbox"><span class="check-copy"><span class="check-title">Sinking fund</span><span class="check-subtitle">Carry a balance forward month to month</span></span></label><div id="cBalanceWrap" style="display:none"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="0.00"></div>`}
       <div class="err" id="cErr"></div>
       <button class="btn" id="cSave">${title}</button>`);
 
@@ -1383,7 +1423,8 @@
       const catTxs = (data.transactions || []).filter((t) => t.categoryId === c.id);
       const isSinkingFund = !!c.isSinkingFund;
       const balance = c.balance || 0;
-      const fundPct = c.planned > 0 ? Math.min(100, (balance / c.planned) * 100) : (balance > 0 ? 100 : 0);
+      const monthSaved = isSinkingFund ? (c.monthSaved || 0) : 0;
+      const fundPct = c.planned > 0 ? Math.min(100, (monthSaved / c.planned) * 100) : (monthSaved > 0 ? 100 : 0);
 
       const s = sheet(`<div class="sheet-head">
       <div>
@@ -1401,19 +1442,19 @@
           <div class="cat-stat-val ${!isIncome && !isSinkingFund && left < 0 ? 'over' : ''}">${isIncome ? money(c.actual) : (isSinkingFund ? money(balance) : (left < 0 ? `-${money(-left)}` : money(left)))}</div>
         </div>
         <div style="text-align:right">
-          <span class="cat-stat-lbl">${isIncome ? 'Expected Target' : (isSinkingFund ? 'Target' : 'Planned Budget')}</span>
-          <div class="cat-stat-sub">${money(c.planned)}</div>
+          <span class="cat-stat-lbl">${isIncome ? 'Expected Target' : (isSinkingFund ? 'This Month' : 'Planned Budget')}</span>
+          <div class="cat-stat-sub">${isSinkingFund ? money(monthSaved) : money(c.planned)}</div>
         </div>
       </div>
       <div class="bar" style="margin-top:12px">
-        <i class="${isIncome ? 'inc-bar' : (isSinkingFund ? (balance >= c.planned ? 'inc-bar' : 'warn') : cls)}" style="width:${isSinkingFund ? fundPct : pct}%"></i>
+        <i class="${isIncome ? 'inc-bar' : (isSinkingFund ? (monthSaved >= c.planned ? 'inc-bar' : 'warn') : cls)}" style="width:${isSinkingFund ? fundPct : pct}%"></i>
       </div>
-      <div class="meta" style="margin-top:8px">${isIncome ? `${money(c.actual)} received of ${money(c.planned)} expected (${Math.round(pct)}%)` : (isSinkingFund ? `${money(balance)} saved of ${money(c.planned)} target (${Math.round(fundPct)}%)` : `${money(c.spent)} spent of ${money(c.planned)} planned (${Math.round(pct)}%)`)}</div>
+      <div class="meta" style="margin-top:8px">${isIncome ? `${money(c.actual)} received of ${money(c.planned)} expected (${Math.round(pct)}%)` : (isSinkingFund ? `${money(monthSaved)} saved this month of ${money(c.planned)} target (${Math.round(fundPct)}%)` : `${money(c.spent)} spent of ${money(c.planned)} planned (${Math.round(pct)}%)`)}</div>
     </div>
 
     <!-- PRIMARY ACTION: Add transaction directly onto this category -->
     <button class="btn" id="cAddTx" style="margin-top:14px">
-      + Add ${isIncome ? 'income' : 'transaction'} to ${esc(c.name)}
+      + ${isIncome ? 'Add income' : (isSinkingFund ? 'Contribute to' : 'Add transaction')} ${esc(c.name)}
     </button>
 
     <!-- Activity in this category this month -->
@@ -1442,7 +1483,7 @@
       <div class="cat-settings-body">
         <label for="cName">Name</label><input id="cName" maxlength="60" value="${esc(c.name)}">
         <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="${c ? fromCents(c.planned) : ''}">
-        ${isIncome ? '' : `<label class="check" for="cSinking"><input id="cSinking" type="checkbox" ${isSinkingFund ? 'checked' : ''}> Sinking fund (carry balance between months)</label><div id="cBalanceWrap" style="display:${isSinkingFund ? 'block' : 'none'}"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="${fromCents(balance)}"></div>`}
+        ${isIncome ? '' : `<label class="check-row" for="cSinking"><input id="cSinking" type="checkbox" ${isSinkingFund ? 'checked' : ''}><span class="check-copy"><span class="check-title">Sinking fund</span><span class="check-subtitle">Carry a balance forward month to month</span></span></label><div id="cBalanceWrap" style="display:${isSinkingFund ? 'block' : 'none'}"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="${fromCents(balance)}"></div>`}
         <div class="err" id="cErr"></div>
         <button class="btn ghost" id="cSave">Save envelope changes</button>
         <button class="btn danger" id="cDel" style="margin-top:8px">Delete ${isIncome ? 'income source' : 'category'}</button>
@@ -1454,7 +1495,7 @@
       // Handle "+ Add transaction directly onto this category"
       $('#cAddTx').onclick = () => {
         closeSheet();
-        openTx(null, { categoryId: c.id, type });
+        openTx(null, { categoryId: c.id, type: isSinkingFund ? 'income' : type });
       };
 
       // Click transaction in category list to edit

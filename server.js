@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS categories (
   name TEXT NOT NULL,
   planned_cents INTEGER NOT NULL DEFAULT 0,
   sort INTEGER NOT NULL DEFAULT 0,
-  type TEXT NOT NULL DEFAULT 'expense'
+  type TEXT NOT NULL DEFAULT 'expense',
+  is_sinking_fund INTEGER NOT NULL DEFAULT 0,
+  balance_cents INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY,
@@ -43,8 +45,10 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_tx_budget_date ON transactions(budget_id, date);
 `);
 
-// Migration: add type column to categories for income vs expense
+// Migrations for category features
 try { db.exec(`ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'`); } catch (e) { /* column already exists */ }
+try { db.exec(`ALTER TABLE categories ADD COLUMN is_sinking_fund INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* column already exists */ }
+try { db.exec(`ALTER TABLE categories ADD COLUMN balance_cents INTEGER NOT NULL DEFAULT 0`); } catch (e) { /* column already exists */ }
 
 // ---------- Helpers ----------
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no look-alike characters
@@ -97,7 +101,7 @@ b.get('/state', (req, res) => {
   const month = isMonth(req.query.month) ? req.query.month : new Date().toISOString().slice(0, 7);
   const id = req.budget.id;
   const categories = db.prepare(`
-    SELECT c.id, c.name, c.planned_cents AS planned, c.type,
+    SELECT c.id, c.name, c.planned_cents AS planned, c.type, c.is_sinking_fund AS isSinkingFund, c.balance_cents AS balance,
       COALESCE(SUM(CASE WHEN t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS spent
     FROM categories c LEFT JOIN transactions t ON t.category_id=c.id
     WHERE c.budget_id=? AND c.type='expense' GROUP BY c.id ORDER BY c.sort, c.id`).all(month, id);
@@ -123,18 +127,27 @@ b.post('/categories', (req, res) => {
   const name = clean(req.body.name);
   const planned = req.body.planned;
   const type = req.body.type === 'income' ? 'income' : 'expense';
+  const isSinkingFund = type === 'expense' && (req.body.isSinkingFund === true || req.body.isSinkingFund === 'true' || req.body.isSinkingFund === 1);
+  const balance = type === 'expense' && isSinkingFund ? (Number(req.body.balance) || 0) : 0;
   if (!name) return res.status(400).json({ error: 'Name is required.' });
   if (!isCents(planned)) return res.status(400).json({ error: 'Enter a valid amount.' });
+  if (!isCents(balance)) return res.status(400).json({ error: 'Enter a valid balance.' });
   const max = db.prepare('SELECT COALESCE(MAX(sort),0) m FROM categories WHERE budget_id=?').get(req.budget.id).m;
-  const info = db.prepare('INSERT INTO categories (budget_id,name,planned_cents,sort,type) VALUES (?,?,?,?,?)').run(req.budget.id, name, planned, max + 1, type);
+  const info = db.prepare('INSERT INTO categories (budget_id,name,planned_cents,sort,type,is_sinking_fund,balance_cents) VALUES (?,?,?,?,?,?,?)')
+    .run(req.budget.id, name, planned, max + 1, type, isSinkingFund ? 1 : 0, balance);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ id: info.lastInsertRowid });
 });
 b.put('/categories/:id', (req, res) => {
   const name = clean(req.body.name);
+  const type = req.body.type === 'income' ? 'income' : 'expense';
+  const isSinkingFund = type === 'expense' && (req.body.isSinkingFund === true || req.body.isSinkingFund === 'true' || req.body.isSinkingFund === 1);
+  const balance = type === 'expense' && isSinkingFund ? (Number(req.body.balance) || 0) : 0;
   if (!name) return res.status(400).json({ error: 'Name is required.' });
   if (!isCents(req.body.planned)) return res.status(400).json({ error: 'Enter a valid amount.' });
-  const r = db.prepare('UPDATE categories SET name=?, planned_cents=? WHERE id=? AND budget_id=?').run(name, req.body.planned, req.params.id, req.budget.id);
+  if (!isCents(balance)) return res.status(400).json({ error: 'Enter a valid balance.' });
+  const r = db.prepare('UPDATE categories SET name=?, planned_cents=?, type=?, is_sinking_fund=?, balance_cents=? WHERE id=? AND budget_id=?')
+    .run(name, req.body.planned, type, isSinkingFund ? 1 : 0, balance, req.params.id, req.budget.id);
   if (!r.changes) return res.status(404).json({ error: 'Category not found.' });
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
@@ -155,28 +168,42 @@ function readTx(req, res) {
   if (!Number.isInteger(amount) || amount <= 0 || amount >= 1e12) return res.status(400).json({ error: 'Enter an amount above zero.' }), null;
   if (!isDate(date)) return res.status(400).json({ error: 'Pick a valid date.' }), null;
   if (categoryId != null) {
-    const cat = db.prepare('SELECT type FROM categories WHERE id=? AND budget_id=?').get(categoryId, req.budget.id);
+    const cat = db.prepare('SELECT type, is_sinking_fund FROM categories WHERE id=? AND budget_id=?').get(categoryId, req.budget.id);
     if (!cat) return res.status(400).json({ error: 'Category not found.' }), null;
-    if (cat.type !== type) categoryId = null;
+    const allowed = cat.type === type || (cat.is_sinking_fund === 1 && ['income', 'expense'].includes(type));
+    if (!allowed) categoryId = null;
   }
   return { type, amount, date, note, who, categoryId };
+}
+function updateSinkingFundBalance(req, categoryId, type, amountCents, reverse = false) {
+  if (categoryId == null) return;
+  const cat = db.prepare('SELECT is_sinking_fund FROM categories WHERE id=? AND budget_id=?').get(categoryId, req.budget.id);
+  if (!cat || cat.is_sinking_fund !== 1) return;
+  const delta = (type === 'income' ? amountCents : -amountCents) * (reverse ? -1 : 1);
+  db.prepare('UPDATE categories SET balance_cents = balance_cents + ? WHERE id=? AND budget_id=?').run(delta, categoryId, req.budget.id);
 }
 b.post('/transactions', (req, res) => {
   const t = readTx(req, res); if (!t) return;
   const info = db.prepare('INSERT INTO transactions (budget_id,category_id,type,amount_cents,note,date,who) VALUES (?,?,?,?,?,?,?)')
     .run(req.budget.id, t.categoryId, t.type, t.amount, t.note, t.date, t.who);
+  updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ id: info.lastInsertRowid });
 });
 b.put('/transactions/:id', (req, res) => {
   const t = readTx(req, res); if (!t) return;
+  const existing = db.prepare('SELECT category_id, type, amount_cents FROM transactions WHERE id=? AND budget_id=?').get(req.params.id, req.budget.id);
+  if (existing && existing.category_id != null) updateSinkingFundBalance(req, existing.category_id, existing.type, existing.amount_cents, true);
   const r = db.prepare('UPDATE transactions SET category_id=?, type=?, amount_cents=?, note=?, date=? WHERE id=? AND budget_id=?')
     .run(t.categoryId, t.type, t.amount, t.note, t.date, req.params.id, req.budget.id);
   if (!r.changes) return res.status(404).json({ error: 'Transaction not found.' });
+  updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
 });
 b.delete('/transactions/:id', (req, res) => {
+  const existing = db.prepare('SELECT category_id, type, amount_cents FROM transactions WHERE id=? AND budget_id=?').get(req.params.id, req.budget.id);
+  if (existing && existing.category_id != null) updateSinkingFundBalance(req, existing.category_id, existing.type, existing.amount_cents, true);
   db.prepare('DELETE FROM transactions WHERE id=? AND budget_id=?').run(req.params.id, req.budget.id);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });

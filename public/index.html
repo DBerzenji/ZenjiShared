@@ -1169,25 +1169,32 @@
       h += `<div class="section-head"><span>Expense Envelopes</span></div>`;
       if (!data.categories.length) h += `<div class="empty">No categories yet. Add your first one below.</div>`;
       for (const c of data.categories) {
+        const isSinking = !!c.isSinkingFund;
         const left = c.planned - c.spent;
         const pct = c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0);
-        const cls = left < 0 ? 'over' : pct >= 85 ? 'warn' : '';
-        const badgeCls = left < 0 ? 'badge-danger' : (pct >= 85 ? 'badge-warn' : 'badge-success');
-        const badgeText = left < 0 ? 'Over budget' : (pct >= 85 ? `${Math.round(pct)}% used` : 'On track');
+        const balance = c.balance || 0;
+        const displayVal = isSinking ? balance : left;
+        const displayText = isSinking ? (balance >= c.planned ? 'Funded' : `${Math.min(100, Math.round((balance / Math.max(c.planned, 1)) * 100))}% of goal`) : (left < 0 ? 'Over budget' : (pct >= 85 ? `${Math.round(pct)}% used` : 'On track'));
+        const displayCls = isSinking ? (balance >= c.planned ? 'badge-success' : 'badge-neutral') : (left < 0 ? 'badge-danger' : (pct >= 85 ? 'badge-warn' : 'badge-success'));
+        const remClass = isSinking ? '' : (left < 0 ? 'over' : '');
+        const label = isSinking ? `${money(balance)} balance` : `${left < 0 ? `-${money(-left)}` : money(left)} ${left < 0 ? 'over' : 'left'}`;
+        const metaText = isSinking ? `${money(balance)} saved of ${money(c.planned)} target` : `${money(c.spent)} spent of ${money(c.planned)} planned`;
+        const barWidth = isSinking ? Math.min(100, (balance / Math.max(c.planned, 1)) * 100) : pct;
+        const barClass = isSinking ? (balance >= c.planned ? 'inc-bar' : 'badge-neutral') : (left < 0 ? 'over' : (pct >= 85 ? 'warn' : ''));
 
-        h += `<div class="cat" data-cat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(left)} ${left < 0 ? 'over' : 'left'}">
+        h += `<div class="cat" data-cat="${c.id}" tabindex="0" role="button" aria-label="${esc(c.name)}, ${money(displayVal)} ${isSinking ? 'saved' : (left < 0 ? 'over' : 'left')}">
       <div class="cat-header">
         <div class="cat-title-wrap">
           <span class="n">${esc(c.name)}</span>
-          <span class="badge ${badgeCls}">${badgeText}</span>
+          <span class="badge ${displayCls}">${displayText}</span>
         </div>
         <div class="cat-action-wrap">
-          <span class="rem ${left < 0 ? 'over' : ''}">${left < 0 ? `-${money(-left)}` : money(left)} ${left < 0 ? 'over' : 'left'}</span>
+          <span class="rem ${remClass}">${label}</span>
           <button class="btn-quick-add" data-quick-cat="${c.id}" title="Add expense to ${esc(c.name)}" aria-label="Add expense to ${esc(c.name)}">+ Add</button>
         </div>
       </div>
-      <div class="meta">${money(c.spent)} spent of ${money(c.planned)} planned</div>
-      <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i class="${cls}" style="width:${pct}%"></i></div></div>`;
+      <div class="meta">${metaText}</div>
+      <div class="bar" role="progressbar" aria-valuenow="${Math.round(barWidth)}" aria-valuemin="0" aria-valuemax="100"><i class="${barClass}" style="width:${barWidth}%"></i></div></div>`;
       }
       if (data.uncategorized > 0) h += `<div class="meta" style="padding:4px 4px 10px;color:var(--muted)">Plus ${money(data.uncategorized)} spent with no category.</div>`;
       h += `<button class="btn ghost" id="addCat">+ Add category</button>`;
@@ -1334,20 +1341,30 @@
       </div>
       <label for="cName">Name</label><input id="cName" maxlength="60" placeholder="${isIncome ? 'e.g. Salary' : 'e.g. Groceries'}" value="">
       <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="">
+      ${isIncome ? '' : `<label class="check" for="cSinking"><input id="cSinking" type="checkbox"> Sinking fund (carry balance between months)</label><div id="cBalanceWrap" style="display:none"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="0.00"></div>`}
       <div class="err" id="cErr"></div>
       <button class="btn" id="cSave">${title}</button>`);
 
         $('#cClose').onclick = closeSheet;
+        if (!isIncome) {
+          const sinkingToggle = $('#cSinking');
+          const balanceWrap = $('#cBalanceWrap');
+          sinkingToggle.onchange = () => balanceWrap.style.display = sinkingToggle.checked ? 'block' : 'none';
+        }
         setTimeout(() => $('#cName').focus(), 50);
 
         const save = async () => {
           const name = $('#cName').value.trim();
           const raw = $('#cPlan').value.trim();
           const planned = raw === '' ? 0 : toCents(raw);
+          const isSinkingFund = !isIncome && $('#cSinking') && $('#cSinking').checked;
+          const rawBalance = isSinkingFund ? ($('#cBalance').value.trim() || '0') : '0';
+          const balance = isSinkingFund ? toCents(rawBalance) : 0;
           if (!name) return ($('#cErr').textContent = 'Give it a name.');
           if (!Number.isFinite(planned) || planned < 0) return ($('#cErr').textContent = 'Enter a valid amount.');
+          if (isSinkingFund && (!Number.isFinite(balance) || balance < 0)) return ($('#cErr').textContent = 'Enter a valid balance.');
           try {
-            await api('POST', `/b/${me.code}/categories`, { name, planned, type });
+            await api('POST', `/b/${me.code}/categories`, { name, planned, type, isSinkingFund, balance });
             closeSheet(); await load();
           } catch (e) { $('#cErr').textContent = e.message; }
         };
@@ -1364,10 +1381,13 @@
         : (c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0));
       const cls = !isIncome && left < 0 ? 'over' : pct >= 85 ? 'warn' : '';
       const catTxs = (data.transactions || []).filter((t) => t.categoryId === c.id);
+      const isSinkingFund = !!c.isSinkingFund;
+      const balance = c.balance || 0;
+      const fundPct = c.planned > 0 ? Math.min(100, (balance / c.planned) * 100) : (balance > 0 ? 100 : 0);
 
       const s = sheet(`<div class="sheet-head">
       <div>
-        <span class="badge ${isIncome ? 'badge-income' : 'badge-neutral'}">${isIncome ? 'Income Source' : 'Expense Envelope'}</span>
+        <span class="badge ${isIncome ? 'badge-income' : (isSinkingFund ? 'badge-success' : 'badge-neutral')}">${isIncome ? 'Income Source' : (isSinkingFund ? 'Sinking Fund' : 'Expense Envelope')}</span>
         <h2>${esc(c.name)}</h2>
       </div>
       <button class="sheet-close" id="cClose" aria-label="Close dialog">✕</button>
@@ -1377,18 +1397,18 @@
     <div class="cat-summary-box">
       <div class="cat-stat-row">
         <div>
-          <span class="cat-stat-lbl">${isIncome ? 'Total Received' : (left < 0 ? 'Over Budget' : 'Remaining')}</span>
-          <div class="cat-stat-val ${!isIncome && left < 0 ? 'over' : ''}">${isIncome ? money(c.actual) : (left < 0 ? `-${money(-left)}` : money(left))}</div>
+          <span class="cat-stat-lbl">${isIncome ? 'Total Received' : (isSinkingFund ? 'Current Balance' : (left < 0 ? 'Over Budget' : 'Remaining'))}</span>
+          <div class="cat-stat-val ${!isIncome && !isSinkingFund && left < 0 ? 'over' : ''}">${isIncome ? money(c.actual) : (isSinkingFund ? money(balance) : (left < 0 ? `-${money(-left)}` : money(left)))}</div>
         </div>
         <div style="text-align:right">
-          <span class="cat-stat-lbl">${isIncome ? 'Expected Target' : 'Planned Budget'}</span>
+          <span class="cat-stat-lbl">${isIncome ? 'Expected Target' : (isSinkingFund ? 'Target' : 'Planned Budget')}</span>
           <div class="cat-stat-sub">${money(c.planned)}</div>
         </div>
       </div>
       <div class="bar" style="margin-top:12px">
-        <i class="${isIncome ? 'inc-bar' : cls}" style="width:${pct}%"></i>
+        <i class="${isIncome ? 'inc-bar' : (isSinkingFund ? (balance >= c.planned ? 'inc-bar' : 'warn') : cls)}" style="width:${isSinkingFund ? fundPct : pct}%"></i>
       </div>
-      <div class="meta" style="margin-top:8px">${isIncome ? `${money(c.actual)} received of ${money(c.planned)} expected (${Math.round(pct)}%)` : `${money(c.spent)} spent of ${money(c.planned)} planned (${Math.round(pct)}%)`}</div>
+      <div class="meta" style="margin-top:8px">${isIncome ? `${money(c.actual)} received of ${money(c.planned)} expected (${Math.round(pct)}%)` : (isSinkingFund ? `${money(balance)} saved of ${money(c.planned)} target (${Math.round(fundPct)}%)` : `${money(c.spent)} spent of ${money(c.planned)} planned (${Math.round(pct)}%)`)}</div>
     </div>
 
     <!-- PRIMARY ACTION: Add transaction directly onto this category -->
@@ -1422,6 +1442,7 @@
       <div class="cat-settings-body">
         <label for="cName">Name</label><input id="cName" maxlength="60" value="${esc(c.name)}">
         <label for="cPlan">${isIncome ? 'Expected each month' : 'Planned each month'}</label><input id="cPlan" inputmode="decimal" placeholder="0.00" value="${c ? fromCents(c.planned) : ''}">
+        ${isIncome ? '' : `<label class="check" for="cSinking"><input id="cSinking" type="checkbox" ${isSinkingFund ? 'checked' : ''}> Sinking fund (carry balance between months)</label><div id="cBalanceWrap" style="display:${isSinkingFund ? 'block' : 'none'}"><label for="cBalance">Current balance</label><input id="cBalance" inputmode="decimal" placeholder="0.00" value="${fromCents(balance)}"></div>`}
         <div class="err" id="cErr"></div>
         <button class="btn ghost" id="cSave">Save envelope changes</button>
         <button class="btn danger" id="cDel" style="margin-top:8px">Delete ${isIncome ? 'income source' : 'category'}</button>
@@ -1448,14 +1469,22 @@
         };
       });
 
+      if (!isIncome && $('#cSinking')) {
+        $('#cSinking').onchange = () => $('#cBalanceWrap').style.display = $('#cSinking').checked ? 'block' : 'none';
+      }
+
       const save = async () => {
         const name = $('#cName').value.trim();
         const raw = $('#cPlan').value.trim();
         const planned = raw === '' ? 0 : toCents(raw);
+        const isSinkingFund = !isIncome && $('#cSinking') && $('#cSinking').checked;
+        const rawBalance = isSinkingFund ? ($('#cBalance').value.trim() || '0') : '0';
+        const balance = isSinkingFund ? toCents(rawBalance) : 0;
         if (!name) return ($('#cErr').textContent = 'Give it a name.');
         if (!Number.isFinite(planned) || planned < 0) return ($('#cErr').textContent = 'Enter a valid amount.');
+        if (isSinkingFund && (!Number.isFinite(balance) || balance < 0)) return ($('#cErr').textContent = 'Enter a valid balance.');
         try {
-          await api('PUT', `/b/${me.code}/categories/${c.id}`, { name, planned });
+          await api('PUT', `/b/${me.code}/categories/${c.id}`, { name, planned, type, isSinkingFund, balance });
           closeSheet(); await load();
         } catch (e) { $('#cErr').textContent = e.message; }
       };

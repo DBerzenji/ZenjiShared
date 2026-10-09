@@ -259,54 +259,45 @@
       position: sticky;
       top: 0;
       z-index: 5;
-      background: var(--bg);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
       border-bottom: 1px solid var(--line);
       padding-top: env(safe-area-inset-top);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0 8px;
+    header.compact {
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+      border-bottom-color: var(--border-subtle);
     }
 
-    .top .name {
-      font-weight: 700;
-      font-size: 19px;
+    .header-row {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-      letter-spacing: -0.3px;
+      padding: 10px 0 8px;
+      transition: padding 0.2s ease;
     }
 
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: background 0.25s ease;
-    }
-
-    .dot.on {
-      background: var(--green);
-      box-shadow: 0 0 0 3px var(--green-soft);
+    header.compact .header-row {
+      padding: 6px 0 4px;
     }
 
     .icon {
-      padding: 8px 14px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 12px;
       color: var(--ink);
       background: var(--card);
       border: 1px solid var(--line);
-      font-size: 14px;
-      font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
       box-shadow: var(--shadow-sm);
-      transition: background 0.15s ease, border-color 0.15s ease;
+      transition: width 0.2s ease, height 0.2s ease, background 0.15s ease, border-color 0.15s ease;
+      flex-shrink: 0;
     }
 
     .icon:hover {
@@ -314,12 +305,23 @@
       border-color: var(--border-subtle);
     }
 
+    .icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .month {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding-bottom: 10px;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
     }
 
     .month b {
@@ -327,11 +329,13 @@
       text-align: center;
       font-size: 16px;
       font-weight: 600;
+      letter-spacing: -0.1px;
+      white-space: nowrap;
     }
 
     .month button {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       font-size: 22px;
       color: var(--ink);
@@ -341,6 +345,7 @@
       align-items: center;
       justify-content: center;
       transition: background 0.15s ease, border-color 0.15s ease;
+      flex-shrink: 0;
     }
 
     .month button:hover {
@@ -349,24 +354,68 @@
       border-color: var(--green-border);
     }
 
+    header.compact .month b {
+      min-width: 130px;
+      font-size: 14px;
+    }
+
+    header.compact .month button,
+    header.compact .icon {
+      width: 34px;
+      height: 34px;
+    }
+
     .tabs {
       display: flex;
       gap: 6px;
+      padding-bottom: 2px;
     }
 
     .tabs button {
       flex: 1;
-      padding: 12px;
+      padding: 10px 12px;
       font-weight: 600;
-      font-size: 15px;
+      font-size: 14px;
       color: var(--muted);
       border-bottom: 3px solid transparent;
-      transition: color 0.15s ease, border-color 0.15s ease;
+      transition: color 0.15s ease, border-color 0.15s ease, padding 0.2s ease;
     }
 
     .tabs button.active {
       color: var(--green);
       border-color: var(--green);
+    }
+
+    header.compact .tabs button {
+      padding-top: 8px;
+      padding-bottom: 8px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      .wrap {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .header-row {
+        gap: 8px;
+      }
+
+      .month {
+        gap: 6px;
+      }
+
+      .month b {
+        min-width: 120px;
+        font-size: 14px;
+      }
+
+      .tabs button {
+        font-size: 13px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
     }
 
     main {
@@ -1027,16 +1076,17 @@
 
   <!-- App -->
   <section id="app" class="hidden">
-    <header>
+    <header id="appHeader">
       <div class="wrap">
-        <div class="top">
-          <div class="name"><span class="dot" id="dot" title="Live sync"></span><span id="bName"></span></div>
-          <button class="icon" id="shareBtn" aria-label="Share budget">Share</button>
-        </div>
-        <div class="month">
-          <button id="prevM" aria-label="Previous month">‹</button>
-          <b id="monthLabel"></b>
-          <button id="nextM" aria-label="Next month">›</button>
+        <div class="header-row">
+          <div class="month">
+            <button id="prevM" aria-label="Previous month">‹</button>
+            <b id="monthLabel"></b>
+            <button id="nextM" aria-label="Next month">›</button>
+          </div>
+          <button class="icon" id="shareBtn" aria-label="Share budget">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8l-6 4 6 4"></path><path d="M8 12h11"></path><path d="M16 5l4 4-4 4"></path><path d="M20 5a3 3 0 0 0-3-3H8a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h9a3 3 0 0 0 3-3"></path></svg>
+          </button>
         </div>
         <div class="tabs">
           <button data-tab="budget" class="active">Budget</button>
@@ -1120,7 +1170,6 @@
       if (!me) return;
       try {
         data = await api('GET', `/b/${me.code}/state?month=${month}`);
-        $('#bName').textContent = data.name;
         render();
       } catch (e) {
         if (/not found/i.test(e.message)) { store.clear(); me = null; showJoin(); }
@@ -1133,14 +1182,18 @@
       closing = false;
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       ws = new WebSocket(`${proto}://${location.host}/ws?code=${me.code}`);
-      ws.onopen = () => { retry = 0; $('#dot').classList.add('on'); load(); };
+      ws.onopen = () => { retry = 0; load(); };
       ws.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === 'changed') load(); } catch { } };
       ws.onclose = () => {
-        $('#dot').classList.remove('on');
         if (closing || !me) return;
         setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
       };
     }
+    window.addEventListener('scroll', () => {
+      const header = document.getElementById('appHeader');
+      if (!header) return;
+      header.classList.toggle('compact', window.scrollY > 16);
+    }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && me) load(); });
 
     /* ---------- Render ---------- */

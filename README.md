@@ -2,13 +2,18 @@
 
 A small shared budget app. Every category is an "envelope" with a monthly planned amount. Add income and expenses, see what's left, and watch changes appear instantly on everyone's devices.
 
-**Stack:** Node.js, Express, SQLite (better-sqlite3), WebSockets (ws), plain HTML/JS frontend. No build step.
+**Stack:** Node.js, Express, Turso / SQLite-compatible remote database, WebSockets (ws), plain HTML/JS frontend. No build step.
 
 ## Run locally
 
 Requires Node 18+.
 
+1. Copy `.env.example` and fill in your Turso values, or leave them unset to use the local SQLite fallback.
+2. Install dependencies.
+3. Start the app.
+
 ```bash
+cp .env.example .env
 npm install
 npm start
 ```
@@ -31,44 +36,57 @@ The code is the only "password", so share it privately. Anyone with the code can
 - **Month arrows:** switch months. Planned amounts repeat every month; spending is counted per month.
 - **Left to plan:** income this month minus the total planned amounts. Aim for zero.
 
-## Deploy
+## Deploy with Render + Turso
 
-The app is one process with one SQLite file, so it needs a host with **persistent disk** and a single instance. Set `DATA_DIR` to a folder on that disk. Always serve over HTTPS (the app switches to `wss://` automatically).
+Render does not provide persistent disk for this app, so the database should live in Turso. The app reads from `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` and connects to the remote database automatically.
 
-### Docker (any host)
-
-```bash
-docker build -t envelope-budget .
-docker run -d -p 3000:3000 -v budget-data:/data envelope-budget
-```
-
-### Fly.io
+### 1) Create a Turso database
 
 ```bash
-fly launch --no-deploy        # accept the Dockerfile
-fly volumes create budget_data --size 1
-# in fly.toml add:
-#   [mounts]
-#     source = "budget_data"
-#     destination = "/data"
-#   [env]
-#     DATA_DIR = "/data"
-fly deploy
+turso db create envelope-budget --location aws-us-east-1
 ```
 
-### Render / Railway
+Then copy the database URL and auth token from the Turso dashboard or CLI:
 
-Create a web service from this folder (Docker or `npm start`), attach a persistent disk mounted at `/data`, and set `DATA_DIR=/data`.
+```bash
+turso db show envelope-budget --url
+turso db tokens create envelope-budget
+```
+
+### 2) Configure Render
+
+In your Render service, set these environment variables:
+
+```bash
+PORT=3000
+TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your-token-here
+```
+
+Use the web service's normal "Build and deploy" flow. Do not rely on local disk or `DATA_DIR` for production data.
+
+### 3) Keep the app on Render without a persistent filesystem
+
+The server is now designed to use Turso for production and falls back to local SQLite only when no Turso variables are present. That makes local development easy without breaking the Render/Turso deployment pattern.
+
+## Local fallback
+
+If you do not set the Turso variables, the app falls back to a local SQLite file in `./data/budget.db` the same way as before. This is useful for development and tests.
 
 ## Backups
 
-Copy `budget.db` (plus `budget.db-wal` if present) from `DATA_DIR`, or run `sqlite3 budget.db ".backup backup.db"` while the app is running.
+For a Turso database, use the Turso dashboard or CLI to clone, export, or back up the database. For local SQLite fallback, copy `budget.db` (plus `budget.db-wal` if present) from `DATA_DIR` or run:
+
+```bash
+sqlite3 data/budget.db ".backup backup.db"
+```
 
 ## Files
 
 - `server.js`: API, database, WebSocket sync
 - `public/index.html`: the whole interface
 - `Dockerfile`: container build
+- `.env.example`: Turso config template
 
 ## Limits (by design)
 

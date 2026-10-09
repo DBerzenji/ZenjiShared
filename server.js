@@ -4,17 +4,72 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
+const { createClient } = require('@libsql/client');
 const Database = require('better-sqlite3');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-fs.mkdirSync(DATA_DIR, { recursive: true });
+const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || process.env.TURSO_URL || '';
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
+
+function rowToObject(columns, row) {
+  const out = {};
+  columns.forEach((column, idx) => { out[column] = row[idx]; });
+  return out;
+}
+
+function createDb() {
+  if (TURSO_DATABASE_URL) {
+    const client = createClient({ url: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN || undefined });
+    return {
+      kind: 'turso',
+      async exec(sql) {
+        await client.executeMultiple(sql);
+        return true;
+      },
+      async get(sql, params = []) {
+        const result = await client.execute({ sql, args: params });
+        return result.rows.length ? rowToObject(result.columns, result.rows[0]) : undefined;
+      },
+      async all(sql, params = []) {
+        const result = await client.execute({ sql, args: params });
+        return result.rows.map((row) => rowToObject(result.columns, row));
+      },
+      async run(sql, params = []) {
+        const result = await client.execute({ sql, args: params });
+        return {
+          lastInsertRowid: result.lastInsertRowid == null ? 0 : Number(result.lastInsertRowid),
+          changes: Number(result.rowsAffected || 0)
+        };
+      }
+    };
+  }
+
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const db = new Database(path.join(DATA_DIR, 'budget.db'));
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  return {
+    kind: 'sqlite',
+    exec(sql) {
+      db.exec(sql);
+      return true;
+    },
+    get(sql, params = []) {
+      return db.prepare(sql).get(...params);
+    },
+    all(sql, params = []) {
+      return db.prepare(sql).all(...params);
+    },
+    run(sql, params = []) {
+      return db.prepare(sql).run(...params);
+    }
+  };
+}
 
 // ---------- Database ----------
-const db = new Database(path.join(DATA_DIR, 'budget.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-db.exec(`
+const db = createDb();
+const schemaSql = `
 CREATE TABLE IF NOT EXISTS budgets (
   id INTEGER PRIMARY KEY,
   code TEXT UNIQUE NOT NULL,
@@ -43,7 +98,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_tx_budget_date ON transactions(budget_id, date);
-`);
+`;
+
+db.exec(schemaSql);
 
 // Migrations for category features
 try { db.exec(`ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'`); } catch (e) { /* column already exists */ }
@@ -77,55 +134,57 @@ const app = express();
 app.use(express.json({ limit: '50kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/api/budgets', (req, res) => {
+app.post('/api/budgets', async (req, res) => {
   const name = clean(req.body.name) || 'Our Budget';
   let code;
-  do code = newCode(); while (db.prepare('SELECT 1 FROM budgets WHERE code=?').get(code));
-  const info = db.prepare('INSERT INTO budgets (code,name) VALUES (?,?)').run(code, name);
-  const ins = db.prepare('INSERT INTO categories (budget_id,name,planned_cents,sort,type) VALUES (?,?,0,?,?)');
-  ['Salary', 'Other Income'].forEach((n, i) => ins.run(info.lastInsertRowid, n, i, 'income'));
-  ['Rent / Mortgage', 'Groceries', 'Transport', 'Fun'].forEach((n, i) => ins.run(info.lastInsertRowid, n, i + 10, 'expense'));
+  do {
+    code = newCode();
+  } while ((await db.get('SELECT 1 FROM budgets WHERE code=?', [code])));
+  const info = await db.run('INSERT INTO budgets (code,name) VALUES (?,?)', [code, name]);
+  const ins = 'INSERT INTO categories (budget_id,name,planned_cents,sort,type) VALUES (?,?,0,?,?)';
+  ['Salary', 'Other Income'].forEach((n, i) => { db.run(ins, [info.lastInsertRowid, n, i, 'income']); });
+  ['Rent / Mortgage', 'Groceries', 'Transport', 'Fun'].forEach((n, i) => { db.run(ins, [info.lastInsertRowid, n, i + 10, 'expense']); });
   res.json({ code, name });
 });
 
 // Everything below needs a valid household code.
 const b = express.Router({ mergeParams: true });
-app.use('/api/b/:code', (req, res, next) => {
-  const budget = db.prepare('SELECT * FROM budgets WHERE code=?').get(String(req.params.code).toUpperCase());
+app.use('/api/b/:code', async (req, res, next) => {
+  const budget = await db.get('SELECT * FROM budgets WHERE code=?', [String(req.params.code).toUpperCase()]);
   if (!budget) return res.status(404).json({ error: 'Budget not found. Check the code.' });
   req.budget = budget;
   next();
 }, b);
 
-b.get('/state', (req, res) => {
+b.get('/state', async (req, res) => {
   const month = isMonth(req.query.month) ? req.query.month : new Date().toISOString().slice(0, 7);
   const id = req.budget.id;
-  const categories = db.prepare(`
+  const categories = await db.all(`
     SELECT c.id, c.name, c.planned_cents AS planned, c.type, c.is_sinking_fund AS isSinkingFund, c.balance_cents AS balance,
       COALESCE(SUM(CASE WHEN t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS spent,
       COALESCE(SUM(CASE WHEN t.category_id=c.id AND t.type='income' AND substr(t.date,1,7)=? THEN t.amount_cents END),0)
       - COALESCE(SUM(CASE WHEN t.category_id=c.id AND t.type='expense' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS monthSaved
     FROM categories c LEFT JOIN transactions t ON t.category_id=c.id
-    WHERE c.budget_id=? AND c.type='expense' GROUP BY c.id ORDER BY c.sort, c.id`).all(month, month, month, id);
-  const incomeCategories = db.prepare(`
+    WHERE c.budget_id=? AND c.type='expense' GROUP BY c.id ORDER BY c.sort, c.id`, [month, month, month, id]);
+  const incomeCategories = await db.all(`
     SELECT c.id, c.name, c.planned_cents AS planned, c.type,
       COALESCE(SUM(CASE WHEN t.type='income' AND substr(t.date,1,7)=? THEN t.amount_cents END),0) AS actual
     FROM categories c LEFT JOIN transactions t ON t.category_id=c.id
-    WHERE c.budget_id=? AND c.type='income' GROUP BY c.id ORDER BY c.sort, c.id`).all(month, id);
-  const totals = db.prepare(`
+    WHERE c.budget_id=? AND c.type='income' GROUP BY c.id ORDER BY c.sort, c.id`, [month, id]);
+  const totals = await db.get(`
     SELECT
       COALESCE(SUM(CASE WHEN type='income' THEN amount_cents END),0) AS income,
       COALESCE(SUM(CASE WHEN type='expense' AND category_id IS NULL THEN amount_cents END),0) AS uncategorized
-    FROM transactions WHERE budget_id=? AND substr(date,1,7)=?`).get(id, month);
-  const transactions = db.prepare(`
+    FROM transactions WHERE budget_id=? AND substr(date,1,7)=?`, [id, month]);
+  const transactions = await db.all(`
     SELECT t.id, t.type, t.amount_cents AS amount, t.note, t.date, t.who, t.category_id AS categoryId, c.name AS categoryName
     FROM transactions t LEFT JOIN categories c ON c.id=t.category_id
-    WHERE t.budget_id=? AND substr(t.date,1,7)=? ORDER BY t.date DESC, t.id DESC`).all(id, month);
+    WHERE t.budget_id=? AND substr(t.date,1,7)=? ORDER BY t.date DESC, t.id DESC`, [id, month]);
   res.json({ name: req.budget.name, code: req.budget.code, month, categories, incomeCategories, income: totals.income, uncategorized: totals.uncategorized, transactions });
 });
 
 // Categories
-b.post('/categories', (req, res) => {
+b.post('/categories', async (req, res) => {
   const name = clean(req.body.name);
   const planned = req.body.planned;
   const type = req.body.type === 'income' ? 'income' : 'expense';
@@ -134,13 +193,13 @@ b.post('/categories', (req, res) => {
   if (!name) return res.status(400).json({ error: 'Name is required.' });
   if (!isCents(planned)) return res.status(400).json({ error: 'Enter a valid amount.' });
   if (!isCents(balance)) return res.status(400).json({ error: 'Enter a valid balance.' });
-  const max = db.prepare('SELECT COALESCE(MAX(sort),0) m FROM categories WHERE budget_id=?').get(req.budget.id).m;
-  const info = db.prepare('INSERT INTO categories (budget_id,name,planned_cents,sort,type,is_sinking_fund,balance_cents) VALUES (?,?,?,?,?,?,?)')
-    .run(req.budget.id, name, planned, max + 1, type, isSinkingFund ? 1 : 0, balance);
+  const max = (await db.get('SELECT COALESCE(MAX(sort),0) m FROM categories WHERE budget_id=?', [req.budget.id])).m;
+  const info = await db.run('INSERT INTO categories (budget_id,name,planned_cents,sort,type,is_sinking_fund,balance_cents) VALUES (?,?,?,?,?,?,?)', [req.budget.id, name, planned, max + 1, type, isSinkingFund ? 1 : 0, balance]);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ id: info.lastInsertRowid });
 });
-b.put('/categories/:id', (req, res) => {
+
+b.put('/categories/:id', async (req, res) => {
   const name = clean(req.body.name);
   const type = req.body.type === 'income' ? 'income' : 'expense';
   const isSinkingFund = type === 'expense' && (req.body.isSinkingFund === true || req.body.isSinkingFund === 'true' || req.body.isSinkingFund === 1);
@@ -148,20 +207,20 @@ b.put('/categories/:id', (req, res) => {
   if (!name) return res.status(400).json({ error: 'Name is required.' });
   if (!isCents(req.body.planned)) return res.status(400).json({ error: 'Enter a valid amount.' });
   if (!isCents(balance)) return res.status(400).json({ error: 'Enter a valid balance.' });
-  const r = db.prepare('UPDATE categories SET name=?, planned_cents=?, type=?, is_sinking_fund=?, balance_cents=? WHERE id=? AND budget_id=?')
-    .run(name, req.body.planned, type, isSinkingFund ? 1 : 0, balance, req.params.id, req.budget.id);
+  const r = await db.run('UPDATE categories SET name=?, planned_cents=?, type=?, is_sinking_fund=?, balance_cents=? WHERE id=? AND budget_id=?', [name, req.body.planned, type, isSinkingFund ? 1 : 0, balance, req.params.id, req.budget.id]);
   if (!r.changes) return res.status(404).json({ error: 'Category not found.' });
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
 });
-b.delete('/categories/:id', (req, res) => {
-  db.prepare('DELETE FROM categories WHERE id=? AND budget_id=?').run(req.params.id, req.budget.id);
+
+b.delete('/categories/:id', async (req, res) => {
+  await db.run('DELETE FROM categories WHERE id=? AND budget_id=?', [req.params.id, req.budget.id]);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
 });
 
 // Transactions
-function readTx(req, res) {
+async function readTx(req, res) {
   const { type, amount, date } = req.body;
   const note = clean(req.body.note, 120);
   const who = clean(req.body.who, 30);
@@ -170,43 +229,44 @@ function readTx(req, res) {
   if (!Number.isInteger(amount) || amount <= 0 || amount >= 1e12) return res.status(400).json({ error: 'Enter an amount above zero.' }), null;
   if (!isDate(date)) return res.status(400).json({ error: 'Pick a valid date.' }), null;
   if (categoryId != null) {
-    const cat = db.prepare('SELECT type, is_sinking_fund FROM categories WHERE id=? AND budget_id=?').get(categoryId, req.budget.id);
+    const cat = await db.get('SELECT type, is_sinking_fund AS isSinkingFund FROM categories WHERE id=? AND budget_id=?', [categoryId, req.budget.id]);
     if (!cat) return res.status(400).json({ error: 'Category not found.' }), null;
-    const allowed = cat.type === type || (cat.is_sinking_fund === 1 && ['income', 'expense'].includes(type));
+    const allowed = cat.type === type || (cat.isSinkingFund === 1 && ['income', 'expense'].includes(type));
     if (!allowed) categoryId = null;
   }
   return { type, amount, date, note, who, categoryId };
 }
-function updateSinkingFundBalance(req, categoryId, type, amountCents, reverse = false) {
+async function updateSinkingFundBalance(req, categoryId, type, amountCents, reverse = false) {
   if (categoryId == null) return;
-  const cat = db.prepare('SELECT is_sinking_fund FROM categories WHERE id=? AND budget_id=?').get(categoryId, req.budget.id);
-  if (!cat || cat.is_sinking_fund !== 1) return;
+  const cat = await db.get('SELECT is_sinking_fund AS isSinkingFund FROM categories WHERE id=? AND budget_id=?', [categoryId, req.budget.id]);
+  if (!cat || cat.isSinkingFund !== 1) return;
   const delta = (type === 'income' ? amountCents : -amountCents) * (reverse ? -1 : 1);
-  db.prepare('UPDATE categories SET balance_cents = balance_cents + ? WHERE id=? AND budget_id=?').run(delta, categoryId, req.budget.id);
+  await db.run('UPDATE categories SET balance_cents = balance_cents + ? WHERE id=? AND budget_id=?', [delta, categoryId, req.budget.id]);
 }
-b.post('/transactions', (req, res) => {
-  const t = readTx(req, res); if (!t) return;
-  const info = db.prepare('INSERT INTO transactions (budget_id,category_id,type,amount_cents,note,date,who) VALUES (?,?,?,?,?,?,?)')
-    .run(req.budget.id, t.categoryId, t.type, t.amount, t.note, t.date, t.who);
-  updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
+
+b.post('/transactions', async (req, res) => {
+  const t = await readTx(req, res); if (!t) return;
+  const info = await db.run('INSERT INTO transactions (budget_id,category_id,type,amount_cents,note,date,who) VALUES (?,?,?,?,?,?,?)', [req.budget.id, t.categoryId, t.type, t.amount, t.note, t.date, t.who]);
+  await updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ id: info.lastInsertRowid });
 });
-b.put('/transactions/:id', (req, res) => {
-  const t = readTx(req, res); if (!t) return;
-  const existing = db.prepare('SELECT category_id, type, amount_cents FROM transactions WHERE id=? AND budget_id=?').get(req.params.id, req.budget.id);
-  if (existing && existing.category_id != null) updateSinkingFundBalance(req, existing.category_id, existing.type, existing.amount_cents, true);
-  const r = db.prepare('UPDATE transactions SET category_id=?, type=?, amount_cents=?, note=?, date=? WHERE id=? AND budget_id=?')
-    .run(t.categoryId, t.type, t.amount, t.note, t.date, req.params.id, req.budget.id);
+
+b.put('/transactions/:id', async (req, res) => {
+  const t = await readTx(req, res); if (!t) return;
+  const existing = await db.get('SELECT category_id AS categoryId, type, amount_cents AS amountCents FROM transactions WHERE id=? AND budget_id=?', [req.params.id, req.budget.id]);
+  if (existing && existing.categoryId != null) await updateSinkingFundBalance(req, existing.categoryId, existing.type, existing.amountCents, true);
+  const r = await db.run('UPDATE transactions SET category_id=?, type=?, amount_cents=?, note=?, date=? WHERE id=? AND budget_id=?', [t.categoryId, t.type, t.amount, t.note, t.date, req.params.id, req.budget.id]);
   if (!r.changes) return res.status(404).json({ error: 'Transaction not found.' });
-  updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
+  await updateSinkingFundBalance(req, t.categoryId, t.type, t.amount);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
 });
-b.delete('/transactions/:id', (req, res) => {
-  const existing = db.prepare('SELECT category_id, type, amount_cents FROM transactions WHERE id=? AND budget_id=?').get(req.params.id, req.budget.id);
-  if (existing && existing.category_id != null) updateSinkingFundBalance(req, existing.category_id, existing.type, existing.amount_cents, true);
-  db.prepare('DELETE FROM transactions WHERE id=? AND budget_id=?').run(req.params.id, req.budget.id);
+
+b.delete('/transactions/:id', async (req, res) => {
+  const existing = await db.get('SELECT category_id AS categoryId, type, amount_cents AS amountCents FROM transactions WHERE id=? AND budget_id=?', [req.params.id, req.budget.id]);
+  if (existing && existing.categoryId != null) await updateSinkingFundBalance(req, existing.categoryId, existing.type, existing.amountCents, true);
+  await db.run('DELETE FROM transactions WHERE id=? AND budget_id=?', [req.params.id, req.budget.id]);
   broadcast(req.budget.code, req.get('x-client'));
   res.json({ ok: true });
 });
@@ -214,9 +274,9 @@ b.delete('/transactions/:id', (req, res) => {
 // ---------- Server + WebSocket ----------
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   const code = (new URL(req.url, 'http://x').searchParams.get('code') || '').toUpperCase();
-  if (!db.prepare('SELECT 1 FROM budgets WHERE code=?').get(code)) return ws.close(4004, 'bad code');
+  if (!(await db.get('SELECT 1 FROM budgets WHERE code=?', [code]))) return ws.close(4004, 'bad code');
   if (!rooms.has(code)) rooms.set(code, new Set());
   rooms.get(code).add(ws);
   ws.isAlive = true;

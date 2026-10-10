@@ -4,89 +4,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#047857">
+  <meta name="theme-color" content="#557964">
   <title>Envelope Budget</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Accessible Light Theme (WCAG AA & AAA compliant) */
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --card-hover: #f1f5f9;
-      --ink: #0f172a;
-      --muted: #475569;
-      --line: #e2e8f0;
-      --border-subtle: #cbd5e1;
-
-      /* Primary & Emerald (Success / In-Budget) */
-      --primary: #047857;
-      --primary-hover: #065f46;
-      --green: #047857;
-      --green-soft: #ecfdf5;
-      --green-soft-text: #065f46;
-      --green-border: #a7f3d0;
-
-      /* Alert & Red (Expense / Over-Budget) */
-      --red: #b91c1c;
-      --red-hover: #991b1b;
-      --red-soft: #fef2f2;
-      --red-soft-text: #991b1b;
-      --red-border: #fecaca;
-
-      /* Warning & Amber (Near-Budget >= 85%) */
-      --amber: #b45309;
-      --amber-soft: #fffbeb;
-      --amber-soft-text: #92400e;
-      --amber-border: #fde68a;
-
-      /* Interactive & Elevation */
-      --focus: #0d9488;
-      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-      --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-      --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
-      --r: 14px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        /* Accessible Dark Theme */
-        --bg: #0b0f19;
-        --card: #131b2e;
-        --card-hover: #1b263f;
-        --ink: #f8fafc;
-        --muted: #94a3b8;
-        --line: #232f48;
-        --border-subtle: #334155;
-
-        /* Primary & Emerald */
-        --primary: #10b981;
-        --primary-hover: #34d399;
-        --green: #34d399;
-        --green-soft: rgba(6, 78, 59, 0.45);
-        --green-soft-text: #6ee7b7;
-        --green-border: #065f46;
-
-        /* Alert & Red */
-        --red: #f87171;
-        --red-hover: #ef4444;
-        --red-soft: rgba(69, 10, 10, 0.5);
-        --red-soft-text: #fca5a5;
-        --red-border: #991b1b;
-
-        /* Warning & Amber */
-        --amber: #fbbf24;
-        --amber-soft: rgba(69, 26, 3, 0.5);
-        --amber-soft-text: #fcd34d;
-        --amber-border: #92400e;
-
-        /* Interactive & Elevation */
-        --focus: #2dd4bf;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45);
-        --shadow-lg: 0 12px 28px -5px rgba(0, 0, 0, 0.65);
-      }
+      color-scheme: light;
+      --bg: #f1f6f3;
+      --card: #fcfdfb;
+      --card-hover: #edf3ee;
+      --ink: #293b32;
+      --muted: #6b7a71;
+      --line: #dce6de;
+      --border-subtle: #c6d5ca;
+      --primary: #557964;
+      --primary-hover: #42634e;
+      --green: #587b60;
+      --green-soft: #e8f1e8;
+      --green-soft-text: #426449;
+      --green-border: #cbdccf;
+      --red: #a85f58;
+      --red-hover: #8f4f49;
+      --red-soft: #f7eeeb;
+      --red-soft-text: #854b45;
+      --red-border: #e7cec7;
+      --amber: #987943;
+      --amber-soft: #f5f1e7;
+      --amber-soft-text: #786234;
+      --amber-border: #e5d9bd;
+      --focus: #6e9077;
+      --shadow-sm: 0 2px 8px rgba(48, 74, 57, 0.045);
+      --shadow: 0 5px 16px rgba(48, 74, 57, 0.075);
+      --shadow-lg: 0 16px 40px rgba(40, 60, 46, 0.15);
+      --r: 8px;
     }
 
     * {
@@ -102,7 +54,7 @@
     html,
     body {
       margin: 0;
-      background: var(--bg);
+      background: linear-gradient(180deg, #f7faf7 0, var(--bg) 30rem);
       color: var(--ink);
       font: 16px/1.45 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
@@ -424,39 +376,40 @@
 
     /* summary */
     .sum-card {
-      padding: 18px;
+      padding: 11px 13px;
     }
 
     .sum {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
       text-align: center;
     }
 
     .sum div span {
       display: block;
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 500;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      letter-spacing: 0.2px;
+      margin-bottom: 2px;
     }
 
     .sum div b {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .left {
-      margin-top: 14px;
-      padding: 12px 14px;
+      margin-top: 8px;
+      padding: 8px 10px;
       border-radius: 10px;
       text-align: center;
       font-weight: 600;
-      font-size: 15px;
+      font-size: 13px;
       background: var(--green-soft);
       color: var(--green-soft-text);
       border: 1px solid var(--green-border);
@@ -520,22 +473,17 @@
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: var(--r);
-      padding: 10px 12px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow-sm);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      padding: 15px 16px;
+      margin-bottom: 14px;
+      box-shadow: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
       cursor: pointer;
       user-select: none;
     }
 
     .cat:hover {
       border-color: var(--border-subtle);
-      box-shadow: var(--shadow);
-      transform: translateY(-1px);
-    }
-
-    .cat:active {
-      transform: translateY(0);
+      background: #ffffff;
     }
 
     .cat-header {
@@ -935,12 +883,12 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 24px 0 12px;
+      margin: 32px 0 14px;
       font-size: 12px;
       font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0;
     }
 
     .section-head::after {
@@ -948,6 +896,192 @@
       flex: 1;
       height: 1px;
       background: var(--line);
+    }
+
+    .budget-section-head {
+      gap: 10px;
+    }
+
+    .organize-trigger {
+      order: 1;
+      padding: 7px 11px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .organize-trigger:hover {
+      background: var(--green-soft);
+      border-color: var(--green-border);
+    }
+
+    .category-section {
+      margin: 0 0 28px;
+    }
+
+    .category-section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 2px 10px;
+      margin: 24px 0 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .category-section-head h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .category-section-count {
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .category-section-empty {
+      margin: 0;
+      padding: 12px 2px 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .org-note {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .org-add-section {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+      margin: 18px 0 22px;
+    }
+
+    .org-add-section label {
+      grid-column: 1 / -1;
+      margin: 0 0 -4px;
+    }
+
+    .org-add-section input {
+      min-width: 0;
+    }
+
+    .org-add-section .btn {
+      width: auto;
+      min-height: 44px;
+      margin: 0;
+      padding: 10px 14px;
+      white-space: nowrap;
+    }
+
+    .org-section {
+      padding: 16px 0 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .org-section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .org-section-head input {
+      min-width: 0;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .org-controls,
+    .org-category-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .org-controls button,
+    .org-category-controls button {
+      width: 34px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+    }
+
+    .org-controls button:hover:not(:disabled),
+    .org-category-controls button:hover:not(:disabled) {
+      background: var(--card-hover);
+      color: var(--ink);
+    }
+
+    .org-controls button:disabled,
+    .org-category-controls button:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .org-controls .org-delete {
+      color: var(--red-soft-text);
+    }
+
+    .org-category-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(112px, 160px) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0 8px 14px;
+      border-top: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+    }
+
+    .org-category-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .org-category-row select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .org-empty {
+      padding: 6px 14px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      .org-category-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 8px;
+      }
+
+      .org-category-name {
+        grid-column: 1 / -1;
+        overflow-wrap: normal;
+      }
+
+      .org-category-row select {
+        grid-column: 1;
+      }
+
+      .org-category-controls {
+        grid-column: 2;
+        grid-row: 2;
+      }
     }
 
     .expect {
@@ -1121,6 +1255,39 @@
     let tab = 'budget';
     let data = null;
     let lastCat = null;
+    const defaultCategorySection = 'uncategorized';
+
+    function saveCategoryLayout(layout) {
+      if (!me) return;
+      try { localStorage.setItem(`envelope-layout-${me.code}`, JSON.stringify(layout)); } catch { }
+    }
+
+    function getCategoryLayout(categories = (data && data.categories) || []) {
+      let layout;
+      try { layout = JSON.parse(localStorage.getItem(`envelope-layout-${me.code}`) || 'null'); } catch { layout = null; }
+      if (!layout || !Array.isArray(layout.sections)) layout = { sections: [] };
+
+      const validIds = new Set(categories.map((category) => Number(category.id)));
+      const usedIds = new Set();
+      const sectionIds = new Set();
+      const sections = [];
+      for (const section of layout.sections) {
+        if (!section || typeof section.id !== 'string' || !section.id || sectionIds.has(section.id)) continue;
+        sectionIds.add(section.id);
+        const categoryIds = Array.isArray(section.categoryIds) ? section.categoryIds.map(Number).filter((id) => validIds.has(id) && !usedIds.has(id)) : [];
+        categoryIds.forEach((id) => usedIds.add(id));
+        sections.push({ id: section.id, name: String(section.name || '').trim().slice(0, 60), categoryIds });
+      }
+      if (!sectionIds.has(defaultCategorySection)) sections.unshift({ id: defaultCategorySection, name: '', categoryIds: [] });
+      const defaultSection = sections.find((section) => section.id === defaultCategorySection);
+      for (const category of categories) {
+        const id = Number(category.id);
+        if (!usedIds.has(id)) { defaultSection.categoryIds.push(id); usedIds.add(id); }
+      }
+      layout = { sections };
+      saveCategoryLayout(layout);
+      return layout;
+    }
 
     async function api(method, path, body) {
       const res = await fetch(`/api${path}`, {
@@ -1231,7 +1398,8 @@
       let h = `<div class="card sum-card"><div class="sum">
     <div><span>Income</span><b>${money(data.income)}</b>${plannedIncome > 0 ? `<span class="expect">of ${money(plannedIncome)} expected</span>` : ''}</div>
     <div><span>Budgeted</span><b>${money(plannedExpense)}</b></div>
-    <div><span>Spent</span><b>${money(spent)}</b></div></div>
+    <div><span>Spent</span><b>${money(spent)}</b></div>
+    <div><span>Saved</span><b>${money(data.saved || 0)}</b></div></div>
     <div class="left ${toAssign < 0 ? 'bad' : ''}">${toAssign < 0 ? `⚠️ Over-planned by ${money(-toAssign)}` : `✓ ${money(toAssign)} left to plan`}</div></div>`;
 
       // Income sources
@@ -1257,9 +1425,14 @@
       h += `<button class="btn ghost" id="addInc" style="margin-bottom:8px">+ Add income source</button>`;
 
       // Expense envelopes
-      h += `<div class="section-head"><span>Expense Envelopes</span></div>`;
-      if (!data.categories.length) h += `<div class="empty">No categories yet. Add your first one below.</div>`;
-      for (const c of data.categories) {
+      h += `<div class="section-head budget-section-head"><span>Expense Categories</span><button class="organize-trigger" id="organizeCats">Organize</button></div>`;
+      const layout = getCategoryLayout(data.categories);
+      const categoriesById = new Map(data.categories.map((category) => [Number(category.id), category]));
+      for (const section of layout.sections) {
+        const sectionCategories = section.categoryIds.map((id) => categoriesById.get(Number(id))).filter(Boolean);
+        h += `<section class="category-section"><div class="category-section-head"><h3>${esc(section.name || 'Unsorted')}</h3><span class="category-section-count">${sectionCategories.length}</span></div>`;
+        if (!sectionCategories.length) h += `<p class="category-section-empty">No categories in this section yet.</p>`;
+        for (const c of sectionCategories) {
         const isSinking = !!c.isSinkingFund;
         const left = c.planned - c.spent;
         const pct = c.planned > 0 ? Math.min(100, (c.spent / c.planned) * 100) : (c.spent > 0 ? 100 : 0);
@@ -1287,6 +1460,8 @@
       </div>
       <div class="meta">${metaText}</div>
       <div class="bar" role="progressbar" aria-valuenow="${Math.round(barWidth)}" aria-valuemin="0" aria-valuemax="100"><i class="${barClass}" style="width:${barWidth}%"></i></div></div>`;
+        }
+        h += `</section>`;
       }
       if (data.uncategorized > 0) h += `<div class="meta" style="padding:4px 4px 10px;color:var(--muted)">Plus ${money(data.uncategorized)} spent with no category.</div>`;
       h += `<button class="btn ghost" id="addCat">+ Add category</button>`;
@@ -1304,7 +1479,133 @@
       }).join('') + `</div>`;
     }
 
+    function openCategoryOrganizer() {
+      const layout = getCategoryLayout(data.categories);
+      const categoryById = new Map(data.categories.map((category) => [Number(category.id), category]));
+
+      function renderOrganizer() {
+        const sectionsHtml = layout.sections.map((section, sectionIndex) => {
+          const sectionCategories = section.categoryIds.map((id) => categoryById.get(Number(id))).filter(Boolean);
+          const categoryRows = sectionCategories.map((category, categoryIndex) => `
+            <div class="org-category-row">
+              <span class="org-category-name">${esc(category.name)}</span>
+              <select data-org-category-section="${category.id}" aria-label="Move ${esc(category.name)} to section">
+                ${layout.sections.map((option) => `<option value="${esc(option.id)}" ${option.id === section.id ? 'selected' : ''}>${esc(option.name || 'Unsorted')}</option>`).join('')}
+              </select>
+              <span class="org-category-controls">
+                <button type="button" data-org-category-order="${category.id}" data-direction="up" ${categoryIndex === 0 ? 'disabled' : ''} title="Move ${esc(category.name)} up" aria-label="Move ${esc(category.name)} up">↑</button>
+                <button type="button" data-org-category-order="${category.id}" data-direction="down" ${categoryIndex === sectionCategories.length - 1 ? 'disabled' : ''} title="Move ${esc(category.name)} down" aria-label="Move ${esc(category.name)} down">↓</button>
+              </span>
+            </div>`).join('');
+
+          return `<section class="org-section">
+            <div class="org-section-head">
+              <input type="text" maxlength="60" data-org-section-name="${esc(section.id)}" value="${esc(section.name)}" placeholder="${section.id === defaultCategorySection ? 'Unsorted' : 'Section name'}" aria-label="Section name">
+              <span class="org-controls">
+                <button type="button" data-org-section-order="${esc(section.id)}" data-direction="up" ${sectionIndex === 0 ? 'disabled' : ''} title="Move section up" aria-label="Move section up">↑</button>
+                <button type="button" data-org-section-order="${esc(section.id)}" data-direction="down" ${sectionIndex === layout.sections.length - 1 ? 'disabled' : ''} title="Move section down" aria-label="Move section down">↓</button>
+                <button type="button" class="org-delete" data-org-section-delete="${esc(section.id)}" ${section.id === defaultCategorySection ? 'disabled' : ''} title="Remove section and move its categories to Unsorted" aria-label="Remove section">×</button>
+              </span>
+            </div>
+            ${categoryRows || '<div class="org-empty">No categories in this section.</div>'}
+          </section>`;
+        }).join('');
+
+        const s = sheet(`<div class="sheet-head">
+          <div><h2>Organize categories</h2><p class="org-note">Arrange sections and categories. This layout is saved on this device.</p></div>
+          <button class="sheet-close" id="orgClose" aria-label="Close organizer">✕</button>
+        </div>
+        <div class="org-add-section">
+          <label for="orgSectionName">New section</label>
+          <input id="orgSectionName" maxlength="60" placeholder="e.g. Housing">
+          <button type="button" class="btn" id="orgAddSection">+ Add</button>
+        </div>
+        <div class="err" id="orgErr" role="alert"></div>
+        <div class="org-sections">${sectionsHtml}</div>`);
+
+        const refresh = () => {
+          saveCategoryLayout(layout);
+          render();
+          renderOrganizer();
+        };
+
+        $('#orgClose').onclick = closeSheet;
+        $('#orgAddSection').onclick = () => {
+          const name = $('#orgSectionName').value.trim();
+          if (!name) return ($('#orgErr').textContent = 'Enter a section name.');
+          const duplicate = layout.sections.some((section) => (section.name || 'Unsorted').toLowerCase() === name.toLowerCase());
+          if (duplicate) return ($('#orgErr').textContent = 'A section with that name already exists.');
+          layout.sections.push({ id: `section-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name, categoryIds: [] });
+          refresh();
+        };
+
+        s.addEventListener('click', (event) => {
+          const sectionMove = event.target.closest('[data-org-section-order]');
+          const sectionDelete = event.target.closest('[data-org-section-delete]');
+          const categoryMove = event.target.closest('[data-org-category-order]');
+          if (sectionMove) {
+            const index = layout.sections.findIndex((section) => section.id === sectionMove.dataset.orgSectionOrder);
+            const nextIndex = index + (sectionMove.dataset.direction === 'up' ? -1 : 1);
+            if (index >= 0 && nextIndex >= 0 && nextIndex < layout.sections.length) {
+              [layout.sections[index], layout.sections[nextIndex]] = [layout.sections[nextIndex], layout.sections[index]];
+              refresh();
+            }
+          } else if (sectionDelete) {
+            const section = layout.sections.find((item) => item.id === sectionDelete.dataset.orgSectionDelete);
+            if (section && section.id !== defaultCategorySection) {
+              const defaultSection = layout.sections.find((item) => item.id === defaultCategorySection);
+              defaultSection.categoryIds.push(...section.categoryIds);
+              layout.sections = layout.sections.filter((item) => item !== section);
+              refresh();
+            }
+          } else if (categoryMove) {
+            const categoryId = Number(categoryMove.dataset.orgCategoryOrder);
+            const section = layout.sections.find((item) => item.categoryIds.includes(categoryId));
+            if (section) {
+              const index = section.categoryIds.indexOf(categoryId);
+              const nextIndex = index + (categoryMove.dataset.direction === 'up' ? -1 : 1);
+              if (nextIndex >= 0 && nextIndex < section.categoryIds.length) {
+                [section.categoryIds[index], section.categoryIds[nextIndex]] = [section.categoryIds[nextIndex], section.categoryIds[index]];
+                refresh();
+              }
+            }
+          }
+        });
+
+        s.addEventListener('change', (event) => {
+          const sectionInput = event.target.closest('[data-org-section-name]');
+          const categorySelect = event.target.closest('[data-org-category-section]');
+          if (sectionInput) {
+            const section = layout.sections.find((item) => item.id === sectionInput.dataset.orgSectionName);
+            const name = sectionInput.value.trim();
+            const displayName = name || 'Unsorted';
+            const duplicate = layout.sections.some((item) => item !== section && (item.name || 'Unsorted').toLowerCase() === displayName.toLowerCase());
+            if (!section || (section.id !== defaultCategorySection && !name) || duplicate) {
+              toast('Choose a unique section name.');
+              renderOrganizer();
+              return;
+            }
+            section.name = name;
+            refresh();
+          } else if (categorySelect) {
+            const categoryId = Number(categorySelect.dataset.orgCategorySection);
+            const targetSection = layout.sections.find((item) => item.id === categorySelect.value);
+            const currentSection = layout.sections.find((item) => item.categoryIds.includes(categoryId));
+            if (targetSection && currentSection && targetSection !== currentSection) {
+              currentSection.categoryIds = currentSection.categoryIds.filter((id) => id !== categoryId);
+              targetSection.categoryIds.push(categoryId);
+              refresh();
+            }
+          }
+        });
+      }
+
+      renderOrganizer();
+    }
+
     $('#main').addEventListener('click', (e) => {
+      if (e.target.closest('#organizeCats')) { openCategoryOrganizer(); return; }
+
       // 1. Quick add direct button on category card
       const quickCat = e.target.closest('[data-quick-cat]');
       if (quickCat) {

@@ -181,14 +181,16 @@ b.get('/state', async (req, res) => {
     WHERE c.budget_id=? AND c.type='income' GROUP BY c.id ORDER BY c.sort, c.id`, [month, id]);
   const totals = await db.get(`
     SELECT
-      COALESCE(SUM(CASE WHEN type='income' THEN amount_cents END),0) AS income,
-      COALESCE(SUM(CASE WHEN type='expense' AND category_id IS NULL THEN amount_cents END),0) AS uncategorized
-    FROM transactions WHERE budget_id=? AND substr(date,1,7)=?`, [id, month]);
+      COALESCE(SUM(CASE WHEN t.type='income' AND COALESCE(c.is_sinking_fund,0)=0 THEN t.amount_cents END),0) AS income,
+      COALESCE(SUM(CASE WHEN t.type='income' AND c.is_sinking_fund=1 THEN t.amount_cents END),0) AS saved,
+      COALESCE(SUM(CASE WHEN t.type='expense' AND t.category_id IS NULL THEN t.amount_cents END),0) AS uncategorized
+    FROM transactions t LEFT JOIN categories c ON c.id=t.category_id
+    WHERE t.budget_id=? AND substr(t.date,1,7)=?`, [id, month]);
   const transactions = await db.all(`
     SELECT t.id, t.type, t.amount_cents AS amount, t.note, t.date, t.who, t.category_id AS categoryId, c.name AS categoryName
     FROM transactions t LEFT JOIN categories c ON c.id=t.category_id
     WHERE t.budget_id=? AND substr(t.date,1,7)=? ORDER BY t.date DESC, t.id DESC`, [id, month]);
-  res.json({ name: req.budget.name, code: req.budget.code, month, categories, incomeCategories, income: totals.income, uncategorized: totals.uncategorized, transactions });
+  res.json({ name: req.budget.name, code: req.budget.code, month, categories, incomeCategories, income: totals.income, saved: totals.saved, uncategorized: totals.uncategorized, transactions });
 });
 
 // Categories
